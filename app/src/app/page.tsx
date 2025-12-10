@@ -11,17 +11,38 @@ import { AgentToolsView } from "@/components/views/agent-tools-view";
 import { InterviewView } from "@/components/views/interview-view";
 import { ContextView } from "@/components/views/context-view";
 import { ProfilesView } from "@/components/views/profiles-view";
+import { SetupView } from "@/components/views/setup-view";
 import { useAppStore } from "@/store/app-store";
+import { useSetupStore } from "@/store/setup-store";
 import { getElectronAPI, isElectron } from "@/lib/electron";
 
 export default function Home() {
-  const { currentView, setIpcConnected, theme } = useAppStore();
+  const { currentView, setCurrentView, setIpcConnected, theme } = useAppStore();
+  const { isFirstRun, setupComplete } = useSetupStore();
   const [isMounted, setIsMounted] = useState(false);
 
   // Prevent hydration issues
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Check if this is first run and redirect to setup if needed
+  useEffect(() => {
+    console.log("[Setup Flow] Checking setup state:", {
+      isMounted,
+      isFirstRun,
+      setupComplete,
+      currentView,
+      shouldShowSetup: isMounted && isFirstRun && !setupComplete,
+    });
+
+    if (isMounted && isFirstRun && !setupComplete) {
+      console.log("[Setup Flow] Redirecting to setup wizard (first run, not complete)");
+      setCurrentView("setup");
+    } else if (isMounted && setupComplete) {
+      console.log("[Setup Flow] Setup already complete, showing normal view");
+    }
+  }, [isMounted, isFirstRun, setupComplete, setCurrentView, currentView]);
 
   // Test IPC connection on mount
   useEffect(() => {
@@ -96,6 +117,8 @@ export default function Home() {
     switch (currentView) {
       case "welcome":
         return <WelcomeView />;
+      case "setup":
+        return <SetupView />;
       case "board":
         return <BoardView />;
       case "spec":
@@ -116,6 +139,21 @@ export default function Home() {
         return <WelcomeView />;
     }
   };
+
+  // Setup view is full-screen without sidebar
+  if (currentView === "setup") {
+    return (
+      <main className="h-screen overflow-hidden" data-testid="app-container">
+        <SetupView />
+        {/* Environment indicator */}
+        {isMounted && !isElectron() && (
+          <div className="fixed bottom-4 right-4 px-3 py-1.5 bg-yellow-500/10 text-yellow-500 text-xs rounded-full border border-yellow-500/20 pointer-events-none">
+            Web Mode (Mock IPC)
+          </div>
+        )}
+      </main>
+    );
+  }
 
   return (
     <main className="flex h-screen overflow-hidden" data-testid="app-container">

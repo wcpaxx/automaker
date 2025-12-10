@@ -818,8 +818,23 @@ ipcMain.handle(
 ipcMain.handle("claude:check-cli", async () => {
   try {
     const claudeCliDetector = require("./services/claude-cli-detector");
-    const info = claudeCliDetector.getInstallationInfo();
-    return { success: true, ...info };
+    const path = require("path");
+    const credentialsPath = path.join(app.getPath("userData"), "credentials.json");
+    const fullStatus = claudeCliDetector.getFullStatus(credentialsPath);
+
+    // Return in format expected by settings view (status: "installed" | "not_installed")
+    return {
+      success: true,
+      status: fullStatus.installed ? "installed" : "not_installed",
+      method: fullStatus.auth?.method || null,
+      version: fullStatus.version || null,
+      path: fullStatus.path || null,
+      authenticated: fullStatus.auth?.authenticated || false,
+      recommendation: fullStatus.installed
+        ? null
+        : "Install Claude Code CLI for optimal performance with ultrathink.",
+      installCommands: fullStatus.installed ? null : claudeCliDetector.getInstallCommands(),
+    };
   } catch (error) {
     console.error("[IPC] claude:check-cli error:", error);
     return { success: false, error: error.message };
@@ -1362,4 +1377,234 @@ ipcMain.handle("git:get-file-diff", async (_, { projectPath, filePath }) => {
     console.error("[IPC] git:get-file-diff error:", error);
     return { success: false, error: error.message };
   }
+});
+
+// ============================================================================
+// Setup & CLI Management IPC Handlers
+// ============================================================================
+
+/**
+ * Get comprehensive Claude CLI status including auth
+ */
+ipcMain.handle("setup:claude-status", async () => {
+  try {
+    const claudeCliDetector = require("./services/claude-cli-detector");
+    const credentialsPath = path.join(app.getPath("userData"), "credentials.json");
+    const result = claudeCliDetector.getFullStatus(credentialsPath);
+    console.log("[IPC] setup:claude-status result:", result);
+    return result;
+  } catch (error) {
+    console.error("[IPC] setup:claude-status error:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Get comprehensive Codex CLI status including auth
+ */
+ipcMain.handle("setup:codex-status", async () => {
+  try {
+    const codexCliDetector = require("./services/codex-cli-detector");
+    const info = codexCliDetector.getFullStatus();
+    return { success: true, ...info };
+  } catch (error) {
+    console.error("[IPC] setup:codex-status error:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Install Claude CLI
+ */
+ipcMain.handle("setup:install-claude", async (event) => {
+  try {
+    const claudeCliDetector = require("./services/claude-cli-detector");
+
+    const sendProgress = (progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("setup:install-progress", {
+          cli: "claude",
+          ...progress
+        });
+      }
+    };
+
+    const result = await claudeCliDetector.installCli(sendProgress);
+    return { success: true, ...result };
+  } catch (error) {
+    console.error("[IPC] setup:install-claude error:", error);
+    return { success: false, error: error.message || error.error };
+  }
+});
+
+/**
+ * Install Codex CLI
+ */
+ipcMain.handle("setup:install-codex", async (event) => {
+  try {
+    const codexCliDetector = require("./services/codex-cli-detector");
+
+    const sendProgress = (progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("setup:install-progress", {
+          cli: "codex",
+          ...progress
+        });
+      }
+    };
+
+    const result = await codexCliDetector.installCli(sendProgress);
+    return { success: true, ...result };
+  } catch (error) {
+    console.error("[IPC] setup:install-codex error:", error);
+    return { success: false, error: error.message || error.error };
+  }
+});
+
+/**
+ * Authenticate Claude CLI (manual auth required)
+ */
+ipcMain.handle("setup:auth-claude", async (event) => {
+  try {
+    const claudeCliDetector = require("./services/claude-cli-detector");
+
+    const sendProgress = (progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("setup:auth-progress", {
+          cli: "claude",
+          ...progress
+        });
+      }
+    };
+
+    const result = await claudeCliDetector.runSetupToken(sendProgress);
+    return { success: true, ...result };
+  } catch (error) {
+    console.error("[IPC] setup:auth-claude error:", error);
+    return { success: false, error: error.message || error.error };
+  }
+});
+
+/**
+ * Authenticate Codex CLI with optional API key
+ */
+ipcMain.handle("setup:auth-codex", async (event, { apiKey }) => {
+  try {
+    const codexCliDetector = require("./services/codex-cli-detector");
+
+    const sendProgress = (progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("setup:auth-progress", {
+          cli: "codex",
+          ...progress
+        });
+      }
+    };
+
+    const result = await codexCliDetector.authenticate(apiKey, sendProgress);
+    return { success: true, ...result };
+  } catch (error) {
+    console.error("[IPC] setup:auth-codex error:", error);
+    return { success: false, error: error.message || error.error };
+  }
+});
+
+/**
+ * Store API key or OAuth token securely (using app's userData)
+ * @param {string} provider - Provider name (anthropic, openai, google, anthropic_oauth_token)
+ * @param {string} apiKey - The API key or OAuth token to store
+ */
+ipcMain.handle("setup:store-api-key", async (_, { provider, apiKey }) => {
+  try {
+    console.log("[IPC] setup:store-api-key called for provider:", provider);
+    const configPath = path.join(app.getPath("userData"), "credentials.json");
+    let credentials = {};
+
+    // Read existing credentials
+    try {
+      const content = await fs.readFile(configPath, "utf-8");
+      credentials = JSON.parse(content);
+    } catch (e) {
+      // File doesn't exist, start fresh
+    }
+
+    // Store the new key/token
+    credentials[provider] = apiKey;
+
+    // Write back
+    await fs.writeFile(configPath, JSON.stringify(credentials, null, 2), "utf-8");
+
+    console.log("[IPC] setup:store-api-key stored successfully for:", provider);
+    return { success: true };
+  } catch (error) {
+    console.error("[IPC] setup:store-api-key error:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Get stored API keys and tokens
+ */
+ipcMain.handle("setup:get-api-keys", async () => {
+  try {
+    const configPath = path.join(app.getPath("userData"), "credentials.json");
+
+    try {
+      const content = await fs.readFile(configPath, "utf-8");
+      const credentials = JSON.parse(content);
+
+      // Return which keys/tokens exist (not the actual values for security)
+      return {
+        success: true,
+        hasAnthropicKey: !!credentials.anthropic,
+        hasAnthropicOAuthToken: !!credentials.anthropic_oauth_token,
+        hasOpenAIKey: !!credentials.openai,
+        hasGoogleKey: !!credentials.google
+      };
+    } catch (e) {
+      return {
+        success: true,
+        hasAnthropicKey: false,
+        hasAnthropicOAuthToken: false,
+        hasOpenAIKey: false,
+        hasGoogleKey: false
+      };
+    }
+  } catch (error) {
+    console.error("[IPC] setup:get-api-keys error:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Configure Codex MCP server for a project
+ */
+ipcMain.handle("setup:configure-codex-mcp", async (_, { projectPath }) => {
+  try {
+    const codexConfigManager = require("./services/codex-config-manager");
+    const mcpServerPath = path.join(__dirname, "services", "mcp-server-factory.js");
+
+    const configPath = await codexConfigManager.configureMcpServer(projectPath, mcpServerPath);
+
+    return { success: true, configPath };
+  } catch (error) {
+    console.error("[IPC] setup:configure-codex-mcp error:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+/**
+ * Get platform information
+ */
+ipcMain.handle("setup:get-platform", async () => {
+  const os = require("os");
+  return {
+    success: true,
+    platform: process.platform,
+    arch: process.arch,
+    homeDir: os.homedir(),
+    isWindows: process.platform === "win32",
+    isMac: process.platform === "darwin",
+    isLinux: process.platform === "linux"
+  };
 });

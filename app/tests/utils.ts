@@ -2338,3 +2338,173 @@ export async function setupMockProjectWithWaitingApprovalFeatures(
     options
   );
 }
+
+// ============================================================================
+// Setup View Utilities
+// ============================================================================
+
+/**
+ * Set up the app store to show setup view (simulate first run)
+ */
+export async function setupFirstRun(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    // Clear any existing setup state to simulate first run
+    localStorage.removeItem("automaker-setup");
+    localStorage.removeItem("automaker-storage");
+
+    // Set up the setup store state for first run
+    const setupState = {
+      state: {
+        isFirstRun: true,
+        setupComplete: false,
+        currentStep: "welcome",
+        claudeCliStatus: null,
+        claudeAuthStatus: null,
+        claudeInstallProgress: {
+          isInstalling: false,
+          currentStep: "",
+          progress: 0,
+          output: [],
+        },
+        codexCliStatus: null,
+        codexAuthStatus: null,
+        codexInstallProgress: {
+          isInstalling: false,
+          currentStep: "",
+          progress: 0,
+          output: [],
+        },
+        skipClaudeSetup: false,
+        skipCodexSetup: false,
+      },
+      version: 0,
+    };
+
+    localStorage.setItem("automaker-setup", JSON.stringify(setupState));
+
+    // Also set up app store to show setup view
+    const appState = {
+      state: {
+        projects: [],
+        currentProject: null,
+        theme: "dark",
+        sidebarOpen: true,
+        apiKeys: { anthropic: "", google: "", openai: "" },
+        chatSessions: [],
+        chatHistoryOpen: false,
+        maxConcurrency: 3,
+        isAutoModeRunning: false,
+        runningAutoTasks: [],
+        autoModeActivityLog: [],
+        currentView: "setup",
+      },
+      version: 0,
+    };
+
+    localStorage.setItem("automaker-storage", JSON.stringify(appState));
+  });
+}
+
+/**
+ * Set up the app to skip the setup wizard (setup already complete)
+ */
+export async function setupComplete(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    // Mark setup as complete
+    const setupState = {
+      state: {
+        isFirstRun: false,
+        setupComplete: true,
+        currentStep: "complete",
+        skipClaudeSetup: false,
+        skipCodexSetup: false,
+      },
+      version: 0,
+    };
+
+    localStorage.setItem("automaker-setup", JSON.stringify(setupState));
+  });
+}
+
+/**
+ * Navigate to the setup view directly
+ */
+export async function navigateToSetup(page: Page): Promise<void> {
+  await setupFirstRun(page);
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await waitForElement(page, "setup-view", { timeout: 10000 });
+}
+
+/**
+ * Wait for setup view to be visible
+ */
+export async function waitForSetupView(page: Page): Promise<Locator> {
+  return waitForElement(page, "setup-view", { timeout: 10000 });
+}
+
+/**
+ * Click "Get Started" button on setup welcome step
+ */
+export async function clickSetupGetStarted(page: Page): Promise<void> {
+  const button = await getByTestId(page, "setup-start-button");
+  await button.click();
+}
+
+/**
+ * Click continue on Claude setup step
+ */
+export async function clickClaudeContinue(page: Page): Promise<void> {
+  const button = await getByTestId(page, "claude-next-button");
+  await button.click();
+}
+
+/**
+ * Click continue on Codex setup step
+ */
+export async function clickCodexContinue(page: Page): Promise<void> {
+  const button = await getByTestId(page, "codex-next-button");
+  await button.click();
+}
+
+/**
+ * Click finish on setup complete step
+ */
+export async function clickSetupFinish(page: Page): Promise<void> {
+  const button = await getByTestId(page, "setup-finish-button");
+  await button.click();
+}
+
+/**
+ * Enter Anthropic API key in setup
+ */
+export async function enterAnthropicApiKey(page: Page, apiKey: string): Promise<void> {
+  // Click "Use Anthropic API Key Instead" button
+  const useApiKeyButton = await getByTestId(page, "use-api-key-button");
+  await useApiKeyButton.click();
+
+  // Enter the API key
+  const input = await getByTestId(page, "anthropic-api-key-input");
+  await input.fill(apiKey);
+
+  // Click save button
+  const saveButton = await getByTestId(page, "save-anthropic-key-button");
+  await saveButton.click();
+}
+
+/**
+ * Enter OpenAI API key in setup
+ */
+export async function enterOpenAIApiKey(page: Page, apiKey: string): Promise<void> {
+  // Click "Enter OpenAI API Key" button
+  const useApiKeyButton = await getByTestId(page, "use-openai-key-button");
+  await useApiKeyButton.click();
+
+  // Enter the API key
+  const input = await getByTestId(page, "openai-api-key-input");
+  await input.fill(apiKey);
+
+  // Click save button
+  const saveButton = await getByTestId(page, "save-openai-key-button");
+  await saveButton.click();
+}

@@ -95,8 +95,41 @@ class ClaudeProvider extends ModelProvider {
   }
 
   /**
+   * Try to load credentials from the app's own credentials.json file.
+   * This is where we store OAuth tokens and API keys that users enter in the setup wizard.
+   * Returns { oauthToken, apiKey } or null values if not found.
+   */
+  loadTokenFromAppCredentials() {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const { app } = require('electron');
+      const credentialsPath = path.join(app.getPath('userData'), 'credentials.json');
+
+      if (!fs.existsSync(credentialsPath)) {
+        console.log('[ClaudeProvider] App credentials file does not exist:', credentialsPath);
+        return { oauthToken: null, apiKey: null };
+      }
+
+      const raw = fs.readFileSync(credentialsPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+
+      // Check for OAuth token first (from claude setup-token), then API key
+      const oauthToken = parsed.anthropic_oauth_token || null;
+      const apiKey = parsed.anthropic || parsed.anthropic_api_key || null;
+
+      console.log('[ClaudeProvider] App credentials check - OAuth token:', !!oauthToken, ', API key:', !!apiKey);
+      return { oauthToken, apiKey };
+    } catch (err) {
+      console.warn('[ClaudeProvider] Failed to read app credentials:', err?.message);
+      return { oauthToken: null, apiKey: null };
+    }
+  }
+
+  /**
    * Try to load a Claude OAuth token from the local CLI config (~/.claude/config.json).
    * Returns the token string or null if not found.
+   * NOTE: Claude's credentials.json is encrypted, so we only try config.json
    */
   loadTokenFromCliConfig() {
     try {
@@ -117,30 +150,44 @@ class ClaudeProvider extends ModelProvider {
   }
 
   ensureAuthEnv() {
-    // If API key or token already present, keep as-is.
+    // If API key or token already present in environment, keep as-is.
     if (process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_CODE_OAUTH_TOKEN) {
       console.log('[ClaudeProvider] Auth already present in environment');
       return true;
     }
-    // Try to hydrate from CLI login config
+
+    // Priority 1: Try to load from app's own credentials (setup wizard)
+    const appCredentials = this.loadTokenFromAppCredentials();
+    if (appCredentials.oauthToken) {
+      process.env.CLAUDE_CODE_OAUTH_TOKEN = appCredentials.oauthToken;
+      console.log('[ClaudeProvider] Loaded CLAUDE_CODE_OAUTH_TOKEN from app credentials');
+      return true;
+    }
+    if (appCredentials.apiKey) {
+      process.env.ANTHROPIC_API_KEY = appCredentials.apiKey;
+      console.log('[ClaudeProvider] Loaded ANTHROPIC_API_KEY from app credentials');
+      return true;
+    }
+
+    // Priority 2: Try to hydrate from CLI login config (legacy)
     const token = this.loadTokenFromCliConfig();
     if (token) {
       process.env.CLAUDE_CODE_OAUTH_TOKEN = token;
       console.log('[ClaudeProvider] Loaded CLAUDE_CODE_OAUTH_TOKEN from ~/.claude/config.json');
       return true;
     }
-    
+
     // Check if CLI is installed but not logged in
     try {
       const claudeCliDetector = require('./claude-cli-detector');
       const detection = claudeCliDetector.detectClaudeInstallation();
       if (detection.installed && detection.method === 'cli') {
-        console.error('[ClaudeProvider] Claude CLI is installed but not logged in. Run `claude login` to authenticate.');
+        console.error('[ClaudeProvider] Claude CLI is installed but not authenticated. Use the setup wizard or set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable.');
       } else {
-        console.error('[ClaudeProvider] No Anthropic auth found (env empty, ~/.claude/config.json missing token)');
+        console.error('[ClaudeProvider] No Anthropic auth found. Use the setup wizard or set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN.');
       }
     } catch (err) {
-      console.error('[ClaudeProvider] No Anthropic auth found (env empty, ~/.claude/config.json missing token)');
+      console.error('[ClaudeProvider] No Anthropic auth found. Use the setup wizard or set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN.');
     }
     return false;
   }
@@ -156,17 +203,17 @@ class ClaudeProvider extends ModelProvider {
   }
 
   async *executeQuery(options) {
-    // Ensure we have auth; fall back to CLI login token if available.
+    // Ensure we have auth; fall back to app credentials or CLI login token if available.
     if (!this.ensureAuthEnv()) {
       // Check if CLI is installed to provide better error message
-      let msg = 'Missing Anthropic auth. Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable.';
+      let msg = 'Missing Anthropic auth. Go to Settings > Setup to configure your Claude authentication.';
       try {
         const claudeCliDetector = require('./claude-cli-detector');
         const detection = claudeCliDetector.detectClaudeInstallation();
         if (detection.installed && detection.method === 'cli') {
-          msg = 'Claude CLI is installed but not authenticated. Run `claude login` to authenticate, or set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable.';
+          msg = 'Claude CLI is installed but not authenticated. Go to Settings > Setup to provide your subscription token (from `claude setup-token`) or API key.';
         } else {
-          msg = 'Missing Anthropic auth. Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN, or install Claude CLI and run `claude login`.';
+          msg = 'Missing Anthropic auth. Go to Settings > Setup to configure your Claude authentication, or set ANTHROPIC_API_KEY environment variable.';
         }
       } catch (err) {
         // Fallback to default message
@@ -239,11 +286,11 @@ class ClaudeProvider extends ModelProvider {
   validateConfig() {
     const errors = [];
 
-    // Ensure auth is available (try to auto-load from CLI config)
+    // Ensure auth is available (try to auto-load from app credentials or CLI config)
     this.ensureAuthEnv();
 
     if (!process.env.CLAUDE_CODE_OAUTH_TOKEN && !process.env.ANTHROPIC_API_KEY) {
-      errors.push('No Claude authentication found. Set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY, or run `claude login` to populate ~/.claude/config.json.');
+      errors.push('No Claude authentication found. Go to Settings > Setup to configure your subscription token or API key.');
     }
 
     return {

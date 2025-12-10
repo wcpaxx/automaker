@@ -1,4 +1,4 @@
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -11,6 +11,205 @@ const os = require('os');
  * for code generation and agentic tasks.
  */
 class CodexCliDetector {
+  /**
+   * Get the path to Codex config directory
+   * @returns {string} Path to .codex directory
+   */
+  static getConfigDir() {
+    return path.join(os.homedir(), '.codex');
+  }
+
+  /**
+   * Get the path to Codex auth file
+   * @returns {string} Path to auth.json
+   */
+  static getAuthPath() {
+    return path.join(this.getConfigDir(), 'auth.json');
+  }
+
+  /**
+   * Check Codex authentication status
+   * @returns {Object} Authentication status
+   */
+  static checkAuth() {
+    console.log('[CodexCliDetector] Checking auth status...');
+    try {
+      const authPath = this.getAuthPath();
+      const envApiKey = process.env.OPENAI_API_KEY;
+      console.log('[CodexCliDetector] Auth path:', authPath);
+      console.log('[CodexCliDetector] Has env API key:', !!envApiKey);
+
+      // First, try to verify authentication using codex CLI command if available
+      try {
+        const detection = this.detectCodexInstallation();
+        if (detection.installed) {
+          try {
+            // Use 'codex login status' to verify authentication
+            const statusOutput = execSync(`"${detection.path || 'codex'}" login status 2>/dev/null`, { 
+              encoding: 'utf-8',
+              timeout: 5000 
+            });
+            
+            // If command succeeds and shows logged in status
+            if (statusOutput && (statusOutput.includes('Logged in') || statusOutput.includes('Authenticated'))) {
+              const result = {
+                authenticated: true,
+                method: 'cli_verified',
+                hasAuthFile: fs.existsSync(authPath),
+                hasEnvKey: !!envApiKey,
+                authPath
+              };
+              console.log('[CodexCliDetector] Auth result (cli_verified):', result);
+              return result;
+            }
+          } catch (statusError) {
+            // status command failed, continue with file-based check
+          }
+        }
+      } catch (verifyError) {
+        // CLI verification failed, continue with file-based check
+      }
+
+      // Check if auth file exists
+      if (fs.existsSync(authPath)) {
+        const content = fs.readFileSync(authPath, 'utf-8');
+        const auth = JSON.parse(content);
+
+        // Check for token object structure (from codex auth login)
+        // Structure: { token: { Id_token, access_token, refresh_token }, last_refresh: ... }
+        if (auth.token && typeof auth.token === 'object') {
+          const token = auth.token;
+          if (token.Id_token || token.access_token || token.refresh_token || token.id_token) {
+            return {
+              authenticated: true,
+              method: 'auth_file',
+              hasAuthFile: true,
+              hasEnvKey: !!envApiKey,
+              authPath
+            };
+          }
+        }
+
+        // Check for various possible auth fields that codex might use
+        if (auth.api_key || auth.openai_api_key || auth.access_token || auth.apiKey) {
+          return {
+            authenticated: true,
+            method: 'auth_file',
+            hasAuthFile: true,
+            hasEnvKey: !!envApiKey,
+            authPath
+          };
+        }
+
+        // Also check if the file has any meaningful content (non-empty object)
+        const keys = Object.keys(auth);
+        if (keys.length > 0) {
+          // File exists and has content, likely authenticated
+          // Try to verify by checking if codex command works
+          try {
+            const detection = this.detectCodexInstallation();
+            if (detection.installed) {
+              // Try to verify auth by running a simple command
+              try {
+                execSync(`"${detection.path || 'codex'}" --version 2>/dev/null`, { 
+                  encoding: 'utf-8',
+                  timeout: 3000 
+                });
+                // If command succeeds, assume authenticated
+                return {
+                  authenticated: true,
+                  method: 'auth_file',
+                  hasAuthFile: true,
+                  hasEnvKey: !!envApiKey,
+                  authPath
+                };
+              } catch (cmdError) {
+                // Command failed, but file exists - might still be authenticated
+                // Return authenticated if file has content
+                return {
+                  authenticated: true,
+                  method: 'auth_file',
+                  hasAuthFile: true,
+                  hasEnvKey: !!envApiKey,
+                  authPath
+                };
+              }
+            }
+          } catch (verifyError) {
+            // Verification failed, but file exists with content
+            return {
+              authenticated: true,
+              method: 'auth_file',
+              hasAuthFile: true,
+              hasEnvKey: !!envApiKey,
+              authPath
+            };
+          }
+        }
+      }
+
+      // Check environment variable
+      if (envApiKey) {
+        const result = {
+          authenticated: true,
+          method: 'env_var',
+          hasAuthFile: false,
+          hasEnvKey: true,
+          authPath
+        };
+        console.log('[CodexCliDetector] Auth result (env_var):', result);
+        return result;
+      }
+
+      // If auth file exists but we didn't find standard keys, 
+      // check if codex CLI is installed and try to verify auth
+      if (fs.existsSync(authPath)) {
+        try {
+          const detection = this.detectCodexInstallation();
+          if (detection.installed) {
+            // Auth file exists and CLI is installed - likely authenticated
+            // The file existing is a good indicator that login was successful
+            return {
+              authenticated: true,
+              method: 'auth_file',
+              hasAuthFile: true,
+              hasEnvKey: !!envApiKey,
+              authPath
+            };
+          }
+        } catch (verifyError) {
+          // Verification attempt failed, but file exists
+          // Assume authenticated if file exists
+          return {
+            authenticated: true,
+            method: 'auth_file',
+            hasAuthFile: true,
+            hasEnvKey: !!envApiKey,
+            authPath
+          };
+        }
+      }
+
+      const result = {
+        authenticated: false,
+        method: 'none',
+        hasAuthFile: false,
+        hasEnvKey: false,
+        authPath
+      };
+      console.log('[CodexCliDetector] Auth result (not authenticated):', result);
+      return result;
+    } catch (error) {
+      console.error('[CodexCliDetector] Error checking auth:', error);
+      const result = {
+        authenticated: false,
+        method: 'none',
+        error: error.message
+      };
+      console.log('[CodexCliDetector] Auth result (error):', result);
+      return result;
+    }
+  }
   /**
    * Check if Codex CLI is installed and accessible
    * @returns {Object} { installed: boolean, path: string|null, version: string|null, method: 'cli'|'npm'|'brew'|'none' }
@@ -223,6 +422,171 @@ class CodexCliDetector {
    */
   static getDefaultModel() {
     return 'gpt-5.1-codex-max';
+  }
+
+  /**
+   * Get comprehensive installation info including auth status
+   * @returns {Object} Full status object
+   */
+  static getFullStatus() {
+    const installation = this.detectCodexInstallation();
+    const auth = this.checkAuth();
+    const info = this.getInstallationInfo();
+
+    return {
+      ...info,
+      auth,
+      installation
+    };
+  }
+
+  /**
+   * Install Codex CLI using npm
+   * @param {Function} onProgress Callback for progress updates
+   * @returns {Promise<Object>} Installation result
+   */
+  static async installCli(onProgress) {
+    return new Promise((resolve, reject) => {
+      const command = 'npm';
+      const args = ['install', '-g', '@openai/codex@latest'];
+
+      const proc = spawn(command, args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        shell: true
+      });
+
+      let output = '';
+      let errorOutput = '';
+
+      proc.stdout.on('data', (data) => {
+        const text = data.toString();
+        output += text;
+        if (onProgress) {
+          onProgress({ type: 'stdout', data: text });
+        }
+      });
+
+      proc.stderr.on('data', (data) => {
+        const text = data.toString();
+        errorOutput += text;
+        // npm often outputs progress to stderr
+        if (onProgress) {
+          onProgress({ type: 'stderr', data: text });
+        }
+      });
+
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve({
+            success: true,
+            output,
+            message: 'Codex CLI installed successfully'
+          });
+        } else {
+          reject({
+            success: false,
+            error: errorOutput || `Installation failed with code ${code}`,
+            output
+          });
+        }
+      });
+
+      proc.on('error', (error) => {
+        reject({
+          success: false,
+          error: error.message,
+          output
+        });
+      });
+    });
+  }
+
+  /**
+   * Authenticate Codex CLI - opens browser for OAuth or stores API key
+   * @param {string} apiKey Optional API key to store
+   * @param {Function} onProgress Callback for progress updates
+   * @returns {Promise<Object>} Authentication result
+   */
+  static async authenticate(apiKey, onProgress) {
+    return new Promise((resolve, reject) => {
+      const detection = this.detectCodexInstallation();
+
+      if (!detection.installed) {
+        reject({
+          success: false,
+          error: 'Codex CLI is not installed'
+        });
+        return;
+      }
+
+      const codexPath = detection.path || 'codex';
+
+      if (apiKey) {
+        // Store API key directly using codex auth command
+        const proc = spawn(codexPath, ['auth', 'login', '--api-key', apiKey], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          shell: false
+        });
+
+        let output = '';
+        let errorOutput = '';
+
+        proc.stdout.on('data', (data) => {
+          const text = data.toString();
+          output += text;
+          if (onProgress) {
+            onProgress({ type: 'stdout', data: text });
+          }
+        });
+
+        proc.stderr.on('data', (data) => {
+          const text = data.toString();
+          errorOutput += text;
+          if (onProgress) {
+            onProgress({ type: 'stderr', data: text });
+          }
+        });
+
+        proc.on('close', (code) => {
+          if (code === 0) {
+            resolve({
+              success: true,
+              output,
+              message: 'Codex CLI authenticated successfully'
+            });
+          } else {
+            reject({
+              success: false,
+              error: errorOutput || `Authentication failed with code ${code}`,
+              output
+            });
+          }
+        });
+
+        proc.on('error', (error) => {
+          reject({
+            success: false,
+            error: error.message,
+            output
+          });
+        });
+      } else {
+        // Require manual authentication
+        if (onProgress) {
+          onProgress({
+            type: 'info',
+            data: 'Please run the following command in your terminal to authenticate:\n\ncodex auth login\n\nThen return here to continue setup.'
+          });
+        }
+
+        resolve({
+          success: true,
+          requiresManualAuth: true,
+          command: `${codexPath} auth login`,
+          message: 'Please authenticate Codex CLI manually'
+        });
+      }
+    });
   }
 }
 

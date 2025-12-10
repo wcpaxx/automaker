@@ -4,6 +4,7 @@ import type { Project, TrashedProject } from "@/lib/electron";
 
 export type ViewMode =
   | "welcome"
+  | "setup"
   | "spec"
   | "board"
   | "agent"

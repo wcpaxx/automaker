@@ -252,6 +252,59 @@ contextBridge.exposeInMainWorld("electronAPI", {
       };
     },
   },
+
+  // Setup & CLI Management API
+  setup: {
+    // Get comprehensive Claude CLI status
+    getClaudeStatus: () => ipcRenderer.invoke("setup:claude-status"),
+
+    // Get comprehensive Codex CLI status
+    getCodexStatus: () => ipcRenderer.invoke("setup:codex-status"),
+
+    // Install Claude CLI
+    installClaude: () => ipcRenderer.invoke("setup:install-claude"),
+
+    // Install Codex CLI
+    installCodex: () => ipcRenderer.invoke("setup:install-codex"),
+
+    // Authenticate Claude CLI
+    authClaude: () => ipcRenderer.invoke("setup:auth-claude"),
+
+    // Authenticate Codex CLI with optional API key
+    authCodex: (apiKey) => ipcRenderer.invoke("setup:auth-codex", { apiKey }),
+
+    // Store API key securely
+    storeApiKey: (provider, apiKey) =>
+      ipcRenderer.invoke("setup:store-api-key", { provider, apiKey }),
+
+    // Get stored API keys status
+    getApiKeys: () => ipcRenderer.invoke("setup:get-api-keys"),
+
+    // Configure Codex MCP server for a project
+    configureCodexMcp: (projectPath) =>
+      ipcRenderer.invoke("setup:configure-codex-mcp", { projectPath }),
+
+    // Get platform information
+    getPlatform: () => ipcRenderer.invoke("setup:get-platform"),
+
+    // Listen for installation progress
+    onInstallProgress: (callback) => {
+      const subscription = (_, data) => callback(data);
+      ipcRenderer.on("setup:install-progress", subscription);
+      return () => {
+        ipcRenderer.removeListener("setup:install-progress", subscription);
+      };
+    },
+
+    // Listen for auth progress
+    onAuthProgress: (callback) => {
+      const subscription = (_, data) => callback(data);
+      ipcRenderer.on("setup:auth-progress", subscription);
+      return () => {
+        ipcRenderer.removeListener("setup:auth-progress", subscription);
+      };
+    },
+  },
 });
 
 // Also expose a flag to detect if we're in Electron

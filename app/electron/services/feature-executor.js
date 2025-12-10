@@ -408,16 +408,16 @@ class FeatureExecutor {
       if (provider?.ensureAuthEnv && !provider.ensureAuthEnv()) {
         // Check if CLI is installed to provide better error message
         let authMsg =
-          "Missing Anthropic auth. Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable.";
+          "Missing Anthropic auth. Go to Settings > Setup to configure your Claude authentication.";
         try {
           const claudeCliDetector = require("./claude-cli-detector");
           const detection = claudeCliDetector.detectClaudeInstallation();
           if (detection.installed && detection.method === "cli") {
             authMsg =
-              "Claude CLI is installed but not authenticated. Run `claude login` to authenticate, or set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable.";
+              "Claude CLI is installed but not authenticated. Go to Settings > Setup to provide your subscription token (from `claude setup-token`) or API key.";
           } else {
             authMsg =
-              "Missing Anthropic auth. Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN, or install Claude CLI and run `claude login`.";
+              "Missing Anthropic auth. Go to Settings > Setup to configure your Claude authentication, or set ANTHROPIC_API_KEY environment variable.";
           }
         } catch (err) {
           // Fallback to default message
