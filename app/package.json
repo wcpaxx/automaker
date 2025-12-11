@@ -1,6 +1,12 @@
 {
   "name": "automaker",
   "version": "0.1.0",
+  "description": "An autonomous AI development studio that helps you build software faster using AI-powered agents",
+  "homepage": "https://github.com/AutoMaker-Org/automaker",
+  "author": {
+    "name": "Cody Seibert",
+    "email": "webdevcody@gmail.com"
+  },
   "private": true,
   "license": "Unlicense",
   "main": "electron/main.js",
@@ -101,7 +107,7 @@
           ]
         }
       ],
-      "icon": "public/logo.png"
+      "icon": "public/logo_larger.png"
     },
     "win": {
       "target": [
@@ -112,7 +118,7 @@
           ]
         }
       ],
-      "icon": "public/logo.png"
+      "icon": "public/logo_larger.png"
     },
     "linux": {
       "target": [
@@ -130,7 +136,8 @@
         }
       ],
       "category": "Development",
-      "icon": "public/logo.png"
+      "icon": "public/logo_larger.png",
+      "maintainer": "webdevcody@gmail.com"
     },
     "nsis": {
       "oneClick": false,

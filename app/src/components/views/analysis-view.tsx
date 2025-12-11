@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useAppStore, FileTreeNode, ProjectAnalysis } from "@/store/app-store";
+import {
+  useAppStore,
+  FileTreeNode,
+  ProjectAnalysis,
+  Feature,
+} from "@/store/app-store";
 import { getElectronAPI } from "@/lib/electron";
 import {
   Card,
@@ -763,12 +768,12 @@ ${Object.entries(projectAnalysis.filesByExtension)
         throw new Error("Features API not available");
       }
 
-      for (const feature of detectedFeatures) {
+      for (const detectedFeature of detectedFeatures) {
         await api.features.create(currentProject.path, {
           id: crypto.randomUUID(),
-          category: feature.category,
-          description: feature.description,
-          steps: feature.steps,
+          category: detectedFeature.category,
+          description: detectedFeature.description,
+          steps: detectedFeature.steps,
           status: "backlog",
         });
       }

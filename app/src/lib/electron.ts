@@ -60,6 +60,8 @@ import type {
   AutoModeEvent,
   WorktreeAPI,
   GitAPI,
+  ModelDefinition,
+  ProviderStatus,
 } from "@/types/electron";
 
 // Feature type - Import from app-store
@@ -108,7 +110,11 @@ export interface SuggestionsEvent {
   error?: string;
 }
 
-export type SuggestionType = "features" | "refactoring" | "security" | "performance";
+export type SuggestionType =
+  | "features"
+  | "refactoring"
+  | "security"
+  | "performance";
 
 export interface SuggestionsAPI {
   generate: (
@@ -183,7 +189,9 @@ export interface AutoModeAPI {
     projectPath: string,
     maxConcurrency?: number
   ) => Promise<{ success: boolean; error?: string }>;
-  stop: (projectPath: string) => Promise<{ success: boolean; error?: string; runningFeatures?: number }>;
+  stop: (
+    projectPath: string
+  ) => Promise<{ success: boolean; error?: string; runningFeatures?: number }>;
   stopFeature: (
     featureId: string
   ) => Promise<{ success: boolean; error?: string }>;
@@ -238,7 +246,9 @@ export interface SaveImageResult {
 
 export interface ElectronAPI {
   ping: () => Promise<string>;
-  openExternalLink: (url: string) => Promise<{ success: boolean; error?: string }>;
+  openExternalLink: (
+    url: string
+  ) => Promise<{ success: boolean; error?: string }>;
   openDirectory: () => Promise<DialogResult>;
   openFile: (options?: object) => Promise<DialogResult>;
   readFile: (filePath: string) => Promise<FileResult>;
@@ -1490,7 +1500,10 @@ let mockSuggestionsTimeout: NodeJS.Timeout | null = null;
 
 function createMockSuggestionsAPI(): SuggestionsAPI {
   return {
-    generate: async (projectPath: string, suggestionType: SuggestionType = "features") => {
+    generate: async (
+      projectPath: string,
+      suggestionType: SuggestionType = "features"
+    ) => {
       if (mockSuggestionsRunning) {
         return {
           success: false,
@@ -1499,7 +1512,9 @@ function createMockSuggestionsAPI(): SuggestionsAPI {
       }
 
       mockSuggestionsRunning = true;
-      console.log(`[Mock] Generating ${suggestionType} suggestions for: ${projectPath}`);
+      console.log(
+        `[Mock] Generating ${suggestionType} suggestions for: ${projectPath}`
+      );
 
       // Simulate async suggestion generation
       simulateSuggestionsGeneration(suggestionType);
@@ -1538,7 +1553,9 @@ function emitSuggestionsEvent(event: SuggestionsEvent) {
   mockSuggestionsCallbacks.forEach((cb) => cb(event));
 }
 
-async function simulateSuggestionsGeneration(suggestionType: SuggestionType = "features") {
+async function simulateSuggestionsGeneration(
+  suggestionType: SuggestionType = "features"
+) {
   const typeLabels: Record<SuggestionType, string> = {
     features: "feature suggestions",
     refactoring: "refactoring opportunities",
@@ -1597,7 +1614,8 @@ async function simulateSuggestionsGeneration(suggestionType: SuggestionType = "f
         {
           id: `suggestion-${Date.now()}-0`,
           category: "Code Smell",
-          description: "Extract duplicate validation logic into reusable utility",
+          description:
+            "Extract duplicate validation logic into reusable utility",
           steps: [
             "Identify all files with similar validation patterns",
             "Create a validation utilities module",
@@ -1610,7 +1628,8 @@ async function simulateSuggestionsGeneration(suggestionType: SuggestionType = "f
         {
           id: `suggestion-${Date.now()}-1`,
           category: "Complexity",
-          description: "Break down large handleSubmit function into smaller functions",
+          description:
+            "Break down large handleSubmit function into smaller functions",
           steps: [
             "Identify the handleSubmit function in form components",
             "Extract validation logic into separate function",
@@ -1618,7 +1637,8 @@ async function simulateSuggestionsGeneration(suggestionType: SuggestionType = "f
             "Extract success/error handling into separate functions",
           ],
           priority: 2,
-          reasoning: "Function is too long and handles multiple responsibilities",
+          reasoning:
+            "Function is too long and handles multiple responsibilities",
         },
         {
           id: `suggestion-${Date.now()}-2`,
@@ -1737,7 +1757,8 @@ async function simulateSuggestionsGeneration(suggestionType: SuggestionType = "f
             "Add localStorage persistence for user preference",
           ],
           priority: 1,
-          reasoning: "Dark mode is a standard feature that improves accessibility and user comfort",
+          reasoning:
+            "Dark mode is a standard feature that improves accessibility and user comfort",
         },
         {
           id: `suggestion-${Date.now()}-1`,
@@ -1762,7 +1783,8 @@ async function simulateSuggestionsGeneration(suggestionType: SuggestionType = "f
             "Add ARIA labels and roles where needed",
           ],
           priority: 3,
-          reasoning: "Improves accessibility for users who rely on keyboard navigation",
+          reasoning:
+            "Improves accessibility for users who rely on keyboard navigation",
         },
       ];
   }

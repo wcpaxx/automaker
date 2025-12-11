@@ -742,7 +742,7 @@ export function Sidebar() {
         {/* Logo */}
         <div
           className={cn(
-            "h-20 pt-8 flex items-center justify-center border-b border-sidebar-border shrink-0 titlebar-drag-region",
+            "h-20 pt-8 flex items-center justify-between border-b border-sidebar-border shrink-0 titlebar-drag-region",
             sidebarOpen ? "px-3 lg:px-6" : "px-3"
           )}
         >
@@ -767,6 +767,18 @@ export function Sidebar() {
               Auto<span className="text-brand-500">maker</span>
             </span>
           </div>
+          {/* Bug Report Button */}
+          <button
+            onClick={() => {
+              const api = getElectronAPI();
+              api.openExternalLink("https://github.com/AutoMaker-Org/automaker/issues");
+            }}
+            className="titlebar-no-drag p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 transition-all"
+            title="Report Bug / Feature Request"
+            data-testid="bug-report-link"
+          >
+            <Bug className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Project Actions - Moved above project selector */}
@@ -1143,37 +1155,6 @@ export function Sidebar() {
             {!sidebarOpen && (
               <span className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-border">
                 Running Agents
-              </span>
-            )}
-          </button>
-        </div>
-        {/* Bug Report Link */}
-        <div className="p-2 pb-0 pt-0">
-          <button
-            onClick={() => {
-              const api = getElectronAPI();
-              api.openExternalLink("https://github.com/AutoMaker-Org/automaker/issues");
-            }}
-            className={cn(
-              "group flex items-center w-full px-2 lg:px-3 py-2.5 rounded-lg relative overflow-hidden transition-all titlebar-no-drag",
-              "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50",
-              sidebarOpen ? "justify-start" : "justify-center"
-            )}
-            title={!sidebarOpen ? "Report Bug / Feature Request" : undefined}
-            data-testid="bug-report-link"
-          >
-            <Bug className="w-4 h-4 shrink-0 transition-colors group-hover:text-brand-400" />
-            <span
-              className={cn(
-                "ml-2.5 font-medium text-sm flex-1 text-left",
-                sidebarOpen ? "hidden lg:block" : "hidden"
-              )}
-            >
-              Report Bug / Feature Request
-            </span>
-            {!sidebarOpen && (
-              <span className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-border">
-                Report Bug / Feature Request
               </span>
             )}
           </button>
