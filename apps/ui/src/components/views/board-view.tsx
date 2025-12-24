@@ -1050,9 +1050,7 @@ export function BoardView() {
             onStartTask={handleStartImplementation}
             onStopTask={handleForceStopFeature}
             onResumeTask={handleResumeFeature}
-            onUpdateFeature={(featureId, updates) => {
-              handleUpdateFeature(featureId, updates);
-            }}
+            onUpdateFeature={updateFeature}
             onSpawnTask={(feature) => {
               setSpawnParentFeature(feature);
               setShowAddDialog(true);
