@@ -11,6 +11,24 @@ import type {
   CursorResultEvent,
 } from '@automaker/types';
 
+/**
+ * Cleans up fragmented streaming text by removing spurious newlines
+ * This handles cases where streaming providers send partial text chunks
+ * that got separated by newlines during accumulation
+ */
+function cleanFragmentedText(content: string): string {
+  // Remove newlines that break up words (newline between letters)
+  // e.g., "sum\n\nmary" -> "summary"
+  let cleaned = content.replace(/([a-zA-Z])\n+([a-zA-Z])/g, '$1$2');
+
+  // Also clean up fragmented XML-like tags
+  // e.g., "<sum\n\nmary>" -> "<summary>"
+  cleaned = cleaned.replace(/<([a-zA-Z]+)\n*([a-zA-Z]*)\n*>/g, '<$1$2>');
+  cleaned = cleaned.replace(/<\/([a-zA-Z]+)\n*([a-zA-Z]*)\n*>/g, '</$1$2>');
+
+  return cleaned;
+}
+
 export type LogEntryType =
   | 'prompt'
   | 'tool_call'
@@ -100,6 +118,8 @@ const generateDeterministicId = (content: string, lineIndex: number): string => 
  */
 function detectEntryType(content: string): LogEntryType {
   const trimmed = content.trim();
+  // Clean fragmented text for pattern matching
+  const cleaned = cleanFragmentedText(trimmed);
 
   // Tool calls
   if (trimmed.startsWith('🔧 Tool:') || trimmed.match(/^Tool:\s*/)) {
@@ -142,14 +162,17 @@ function detectEntryType(content: string): LogEntryType {
   }
 
   // Success messages and summary sections
+  // Check both raw and cleaned content for summary tags (handles fragmented streaming)
   if (
     trimmed.startsWith('✅') ||
     trimmed.toLowerCase().includes('success') ||
     trimmed.toLowerCase().includes('completed') ||
-    // Summary tags (preferred format from agent)
+    // Summary tags (preferred format from agent) - check both raw and cleaned
     trimmed.startsWith('<summary>') ||
+    cleaned.startsWith('<summary>') ||
     // Markdown summary headers (fallback)
     trimmed.match(/^##\s+(Summary|Feature|Changes|Implementation)/i) ||
+    cleaned.match(/^##\s+(Summary|Feature|Changes|Implementation)/i) ||
     trimmed.match(/^(I've|I have) (successfully |now )?(completed|finished|implemented)/i)
   ) {
     return 'success';
@@ -585,6 +608,9 @@ export function shouldCollapseByDefault(entry: LogEntry): boolean {
  * Generates a title for a log entry
  */
 function generateTitle(type: LogEntryType, content: string): string {
+  // Clean content for pattern matching
+  const cleaned = cleanFragmentedText(content);
+
   switch (type) {
     case 'tool_call': {
       const toolName = extractToolName(content);
@@ -607,11 +633,19 @@ function generateTitle(type: LogEntryType, content: string): string {
     case 'error':
       return 'Error';
     case 'success': {
-      // Check if it's a summary section
-      if (content.startsWith('<summary>') || content.includes('<summary>')) {
+      // Check if it's a summary section (check both raw and cleaned)
+      if (
+        content.startsWith('<summary>') ||
+        content.includes('<summary>') ||
+        cleaned.startsWith('<summary>') ||
+        cleaned.includes('<summary>')
+      ) {
         return 'Summary';
       }
-      if (content.match(/^##\s+(Summary|Feature|Changes|Implementation)/i)) {
+      if (
+        content.match(/^##\s+(Summary|Feature|Changes|Implementation)/i) ||
+        cleaned.match(/^##\s+(Summary|Feature|Changes|Implementation)/i)
+      ) {
         return 'Summary';
       }
       if (
@@ -803,10 +837,12 @@ export function parseLogOutput(rawOutput: string): LogEntry[] {
       trimmedLine.match(/\[Status\]/i) ||
       trimmedLine.toLowerCase().includes('ultrathink preparation') ||
       trimmedLine.match(/thinking level[:\s]*(low|medium|high|none|\d)/i) ||
-      // Summary tags (preferred format from agent)
+      // Summary tags (preferred format from agent) - check both raw and cleaned for fragmented streaming
       trimmedLine.startsWith('<summary>') ||
+      cleanFragmentedText(trimmedLine).startsWith('<summary>') ||
       // Agent summary sections (markdown headers - fallback)
       trimmedLine.match(/^##\s+(Summary|Feature|Changes|Implementation)/i) ||
+      cleanFragmentedText(trimmedLine).match(/^##\s+(Summary|Feature|Changes|Implementation)/i) ||
       // Summary introduction lines
       trimmedLine.match(/^All tasks completed/i) ||
       trimmedLine.match(/^(I've|I have) (successfully |now )?(completed|finished|implemented)/i);
@@ -834,7 +870,13 @@ export function parseLogOutput(rawOutput: string): LogEntry[] {
       currentContent.push(trimmedLine);
 
       // If this is a <summary> tag, start summary accumulation mode
-      if (trimmedLine.startsWith('<summary>') && !trimmedLine.includes('</summary>')) {
+      // Check both raw and cleaned for fragmented streaming
+      const cleanedTrimmed = cleanFragmentedText(trimmedLine);
+      if (
+        (trimmedLine.startsWith('<summary>') || cleanedTrimmed.startsWith('<summary>')) &&
+        !trimmedLine.includes('</summary>') &&
+        !cleanedTrimmed.includes('</summary>')
+      ) {
         inSummaryAccumulation = true;
       }
     } else if (isInputLine && currentEntry) {

@@ -1917,10 +1917,48 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
     // Note: We use projectPath here, not workDir, because workDir might be a worktree path
     const featureDirForOutput = getFeatureDir(projectPath, featureId);
     const outputPath = path.join(featureDirForOutput, 'agent-output.md');
+    const rawOutputPath = path.join(featureDirForOutput, 'raw-output.jsonl');
+
+    // Raw output logging is configurable via environment variable
+    // Set AUTOMAKER_DEBUG_RAW_OUTPUT=true to enable raw stream event logging
+    const enableRawOutput =
+      process.env.AUTOMAKER_DEBUG_RAW_OUTPUT === 'true' ||
+      process.env.AUTOMAKER_DEBUG_RAW_OUTPUT === '1';
 
     // Incremental file writing state
     let writeTimeout: ReturnType<typeof setTimeout> | null = null;
     const WRITE_DEBOUNCE_MS = 500; // Batch writes every 500ms
+
+    // Raw output accumulator for debugging (NDJSON format)
+    let rawOutputLines: string[] = [];
+    let rawWriteTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    // Helper to append raw stream event for debugging (only when enabled)
+    const appendRawEvent = (event: unknown): void => {
+      if (!enableRawOutput) return;
+
+      try {
+        const timestamp = new Date().toISOString();
+        const rawLine = JSON.stringify({ timestamp, event }, null, 4); // Pretty print for readability
+        rawOutputLines.push(rawLine);
+
+        // Debounced write of raw output
+        if (rawWriteTimeout) {
+          clearTimeout(rawWriteTimeout);
+        }
+        rawWriteTimeout = setTimeout(async () => {
+          try {
+            await secureFs.mkdir(path.dirname(rawOutputPath), { recursive: true });
+            await secureFs.appendFile(rawOutputPath, rawOutputLines.join('\n') + '\n');
+            rawOutputLines = []; // Clear after writing
+          } catch (error) {
+            console.error(`[AutoMode] Failed to write raw output for ${featureId}:`, error);
+          }
+        }, WRITE_DEBOUNCE_MS);
+      } catch {
+        // Ignore serialization errors
+      }
+    };
 
     // Helper to write current responseText to file
     const writeToFile = async (): Promise<void> => {
@@ -1943,19 +1981,65 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       }, WRITE_DEBOUNCE_MS);
     };
 
+    // Track last text block for deduplication (Cursor sends duplicates)
+    let lastTextBlock = '';
+
     streamLoop: for await (const msg of stream) {
+      // Log raw stream event for debugging
+      appendRawEvent(msg);
+
       if (msg.type === 'assistant' && msg.message?.content) {
         for (const block of msg.message.content) {
           if (block.type === 'text') {
-            // Add separator before new text if we already have content and it doesn't end with newlines
-            if (responseText.length > 0 && !responseText.endsWith('\n\n')) {
-              if (responseText.endsWith('\n')) {
-                responseText += '\n';
-              } else {
+            const newText = block.text || '';
+
+            // Skip empty text
+            if (!newText) continue;
+
+            // Cursor-specific: Skip duplicate consecutive text blocks
+            // Cursor often sends the same text twice in a row
+            if (newText === lastTextBlock) {
+              continue;
+            }
+
+            // Cursor-specific: Skip final accumulated text block
+            // At the end, Cursor sends one large block containing ALL previous text
+            // Detect by checking if this block contains most of responseText
+            if (
+              responseText.length > 100 &&
+              newText.length > responseText.length * 0.8 &&
+              responseText.trim().length > 0
+            ) {
+              // Check if this looks like accumulated text (contains our existing content)
+              const normalizedResponse = responseText.replace(/\s+/g, ' ').trim();
+              const normalizedNew = newText.replace(/\s+/g, ' ').trim();
+              if (normalizedNew.includes(normalizedResponse.slice(0, 100))) {
+                // This is the final accumulated block, skip it
+                continue;
+              }
+            }
+
+            lastTextBlock = newText;
+
+            // Only add separator when we're at a natural paragraph break:
+            // - Previous text ends with sentence terminator AND new text starts a new thought
+            // - Don't add separators mid-word or mid-sentence (for streaming providers like Cursor)
+            if (responseText.length > 0 && newText.length > 0) {
+              const lastChar = responseText.slice(-1);
+              const endsWithSentence = /[.!?:]\s*$/.test(responseText);
+              const endsWithNewline = /\n\s*$/.test(responseText);
+              const startsNewParagraph = /^[\n#\-*>]/.test(newText);
+
+              // Add paragraph break only at natural boundaries
+              if (
+                !endsWithNewline &&
+                (endsWithSentence || startsNewParagraph) &&
+                !/[a-zA-Z0-9]/.test(lastChar) // Not mid-word
+              ) {
                 responseText += '\n\n';
               }
             }
-            responseText += block.text || '';
+            responseText += newText;
 
             // Check for authentication errors in the response
             if (
@@ -2431,6 +2515,21 @@ Implement all the changes described in the plan above.`;
     }
     // Final write - ensure all accumulated content is saved
     await writeToFile();
+
+    // Flush remaining raw output (only if enabled)
+    if (enableRawOutput) {
+      if (rawWriteTimeout) {
+        clearTimeout(rawWriteTimeout);
+      }
+      if (rawOutputLines.length > 0) {
+        try {
+          await secureFs.mkdir(path.dirname(rawOutputPath), { recursive: true });
+          await secureFs.appendFile(rawOutputPath, rawOutputLines.join('\n') + '\n');
+        } catch (error) {
+          console.error(`[AutoMode] Failed to write final raw output for ${featureId}:`, error);
+        }
+      }
+    }
   }
 
   private async executeFeatureWithContext(

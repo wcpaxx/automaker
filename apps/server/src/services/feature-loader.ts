@@ -159,6 +159,13 @@ export class FeatureLoader {
   }
 
   /**
+   * Get the path to a feature's raw-output.jsonl file
+   */
+  getRawOutputPath(projectPath: string, featureId: string): string {
+    return path.join(this.getFeatureDir(projectPath, featureId), 'raw-output.jsonl');
+  }
+
+  /**
    * Generate a new feature ID
    */
   generateFeatureId(): string {
@@ -353,6 +360,23 @@ export class FeatureLoader {
         return null;
       }
       logger.error(`[FeatureLoader] Failed to get agent output for ${featureId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get raw output for a feature (JSONL format for debugging)
+   */
+  async getRawOutput(projectPath: string, featureId: string): Promise<string | null> {
+    try {
+      const rawOutputPath = this.getRawOutputPath(projectPath, featureId);
+      const content = (await secureFs.readFile(rawOutputPath, 'utf-8')) as string;
+      return content;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
+      logger.error(`[FeatureLoader] Failed to get raw output for ${featureId}:`, error);
       throw error;
     }
   }
