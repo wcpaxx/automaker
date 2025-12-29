@@ -1,40 +1,25 @@
 import { Button } from '@/components/ui/button';
 import { Terminal, CheckCircle2, AlertCircle, RefreshCw, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { CliStatus } from '../shared/types';
-import type { ClaudeAuthStatus } from '@/store/setup-store';
 
-interface CliStatusProps {
-  status: CliStatus | null;
-  authStatus?: ClaudeAuthStatus | null;
-  isChecking: boolean;
-  onRefresh: () => void;
+interface CursorStatus {
+  installed: boolean;
+  version?: string;
+  authenticated: boolean;
+  method?: string;
 }
 
-function getAuthMethodLabel(method: string): string {
-  switch (method) {
-    case 'oauth_token':
-      return 'OAuth Token (Subscription)';
-    case 'oauth_token_env':
-      return 'OAuth Token (Environment)';
-    case 'api_key':
-      return 'API Key';
-    case 'api_key_env':
-      return 'API Key (Environment)';
-    case 'credentials_file':
-      return 'Credentials File';
-    case 'cli_authenticated':
-      return 'CLI Authentication';
-    default:
-      return method || 'Unknown';
-  }
+interface CursorCliStatusProps {
+  status: CursorStatus | null;
+  isChecking: boolean;
+  onRefresh: () => void;
 }
 
 function SkeletonPulse({ className }: { className?: string }) {
   return <div className={cn('animate-pulse bg-muted/50 rounded', className)} />;
 }
 
-function ClaudeCliStatusSkeleton() {
+export function CursorCliStatusSkeleton() {
   return (
     <div
       className={cn(
@@ -48,12 +33,12 @@ function ClaudeCliStatusSkeleton() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <SkeletonPulse className="w-9 h-9 rounded-xl" />
-            <SkeletonPulse className="h-6 w-36" />
+            <SkeletonPulse className="h-6 w-28" />
           </div>
           <SkeletonPulse className="w-9 h-9 rounded-lg" />
         </div>
         <div className="ml-12">
-          <SkeletonPulse className="h-4 w-80" />
+          <SkeletonPulse className="h-4 w-72" />
         </div>
       </div>
       <div className="p-6 space-y-4">
@@ -61,9 +46,8 @@ function ClaudeCliStatusSkeleton() {
         <div className="flex items-center gap-3 p-4 rounded-xl border border-border/30 bg-muted/10">
           <SkeletonPulse className="w-10 h-10 rounded-xl" />
           <div className="flex-1 space-y-2">
-            <SkeletonPulse className="h-4 w-40" />
-            <SkeletonPulse className="h-3 w-32" />
-            <SkeletonPulse className="h-3 w-48" />
+            <SkeletonPulse className="h-4 w-36" />
+            <SkeletonPulse className="h-3 w-28" />
           </div>
         </div>
         {/* Auth status skeleton */}
@@ -71,7 +55,7 @@ function ClaudeCliStatusSkeleton() {
           <SkeletonPulse className="w-10 h-10 rounded-xl" />
           <div className="flex-1 space-y-2">
             <SkeletonPulse className="h-4 w-28" />
-            <SkeletonPulse className="h-3 w-36" />
+            <SkeletonPulse className="h-3 w-32" />
           </div>
         </div>
       </div>
@@ -79,8 +63,59 @@ function ClaudeCliStatusSkeleton() {
   );
 }
 
-export function ClaudeCliStatus({ status, authStatus, isChecking, onRefresh }: CliStatusProps) {
-  if (!status) return <ClaudeCliStatusSkeleton />;
+export function ModelConfigSkeleton() {
+  return (
+    <div
+      className={cn(
+        'rounded-2xl overflow-hidden',
+        'border border-border/50',
+        'bg-gradient-to-br from-card/90 via-card/70 to-card/80 backdrop-blur-xl',
+        'shadow-sm shadow-black/5'
+      )}
+    >
+      <div className="p-6 border-b border-border/50 bg-gradient-to-r from-transparent via-accent/5 to-transparent">
+        <div className="flex items-center gap-3 mb-2">
+          <SkeletonPulse className="w-9 h-9 rounded-xl" />
+          <SkeletonPulse className="h-6 w-40" />
+        </div>
+        <div className="ml-12">
+          <SkeletonPulse className="h-4 w-72" />
+        </div>
+      </div>
+      <div className="p-6 space-y-6">
+        {/* Default Model skeleton */}
+        <div className="space-y-2">
+          <SkeletonPulse className="h-4 w-24" />
+          <SkeletonPulse className="h-10 w-full rounded-md" />
+        </div>
+        {/* Available Models skeleton */}
+        <div className="space-y-3">
+          <SkeletonPulse className="h-4 w-32" />
+          <div className="grid gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between p-3 rounded-xl border border-border/30 bg-muted/10"
+              >
+                <div className="flex items-center gap-3">
+                  <SkeletonPulse className="w-5 h-5 rounded" />
+                  <div className="space-y-1.5">
+                    <SkeletonPulse className="h-4 w-32" />
+                    <SkeletonPulse className="h-3 w-48" />
+                  </div>
+                </div>
+                <SkeletonPulse className="h-5 w-12 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function CursorCliStatus({ status, isChecking, onRefresh }: CursorCliStatusProps) {
+  if (!status) return <CursorCliStatusSkeleton />;
 
   return (
     <div
@@ -97,17 +132,15 @@ export function ClaudeCliStatus({ status, authStatus, isChecking, onRefresh }: C
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center border border-brand-500/20">
               <Terminal className="w-5 h-5 text-brand-500" />
             </div>
-            <h2 className="text-lg font-semibold text-foreground tracking-tight">
-              Claude Code CLI
-            </h2>
+            <h2 className="text-lg font-semibold text-foreground tracking-tight">Cursor CLI</h2>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={onRefresh}
             disabled={isChecking}
-            data-testid="refresh-claude-cli"
-            title="Refresh Claude CLI detection"
+            data-testid="refresh-cursor-cli"
+            title="Refresh Cursor CLI detection"
             className={cn(
               'h-9 w-9 rounded-lg',
               'hover:bg-accent/50 hover:scale-105',
@@ -118,40 +151,31 @@ export function ClaudeCliStatus({ status, authStatus, isChecking, onRefresh }: C
           </Button>
         </div>
         <p className="text-sm text-muted-foreground/80 ml-12">
-          Claude Code CLI provides better performance for long-running tasks, especially with
-          ultrathink.
+          Cursor CLI enables AI-powered code editing using Cursor's models.
         </p>
       </div>
       <div className="p-6 space-y-4">
-        {status.success && status.status === 'installed' ? (
+        {status.installed ? (
           <div className="space-y-3">
+            {/* Installation Status - Success */}
             <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center border border-emerald-500/20 shrink-0">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-emerald-400">Claude Code CLI Installed</p>
+                <p className="text-sm font-medium text-emerald-400">Cursor CLI Installed</p>
                 <div className="text-xs text-emerald-400/70 mt-1.5 space-y-0.5">
-                  {status.method && (
-                    <p>
-                      Method: <span className="font-mono">{status.method}</span>
-                    </p>
-                  )}
                   {status.version && (
                     <p>
                       Version: <span className="font-mono">{status.version}</span>
                     </p>
                   )}
-                  {status.path && (
-                    <p className="truncate" title={status.path}>
-                      Path: <span className="font-mono text-[10px]">{status.path}</span>
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
+
             {/* Authentication Status */}
-            {authStatus?.authenticated ? (
+            {status.authenticated ? (
               <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center border border-emerald-500/20 shrink-0">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
@@ -161,7 +185,9 @@ export function ClaudeCliStatus({ status, authStatus, isChecking, onRefresh }: C
                   <div className="text-xs text-emerald-400/70 mt-1.5">
                     <p>
                       Method:{' '}
-                      <span className="font-mono">{getAuthMethodLabel(authStatus.method)}</span>
+                      <span className="font-mono">
+                        {status.method === 'api_key' ? 'API Key' : 'Browser Login'}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -174,15 +200,11 @@ export function ClaudeCliStatus({ status, authStatus, isChecking, onRefresh }: C
                 <div className="flex-1">
                   <p className="text-sm font-medium text-amber-400">Not Authenticated</p>
                   <p className="text-xs text-amber-400/70 mt-1">
-                    Run <code className="font-mono bg-amber-500/10 px-1 rounded">claude login</code>{' '}
-                    or set an API key to authenticate.
+                    Run <code className="font-mono bg-amber-500/10 px-1 rounded">cursor auth</code>{' '}
+                    to authenticate with Cursor.
                   </p>
                 </div>
               </div>
-            )}
-
-            {status.recommendation && (
-              <p className="text-xs text-muted-foreground/70 ml-1">{status.recommendation}</p>
             )}
           </div>
         ) : (
@@ -192,50 +214,23 @@ export function ClaudeCliStatus({ status, authStatus, isChecking, onRefresh }: C
                 <AlertCircle className="w-5 h-5 text-amber-500" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-amber-400">Claude Code CLI Not Detected</p>
+                <p className="text-sm font-medium text-amber-400">Cursor CLI Not Detected</p>
                 <p className="text-xs text-amber-400/70 mt-1">
-                  {status.recommendation ||
-                    'Consider installing Claude Code CLI for optimal performance with ultrathink.'}
+                  Install Cursor CLI to use Cursor models in AutoMaker.
                 </p>
               </div>
             </div>
-            {status.installCommands && (
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-foreground/80">Installation Commands:</p>
-                <div className="space-y-2">
-                  {status.installCommands.npm && (
-                    <div className="p-3 rounded-xl bg-accent/30 border border-border/50">
-                      <p className="text-[10px] text-muted-foreground mb-1.5 font-medium uppercase tracking-wider">
-                        npm
-                      </p>
-                      <code className="text-xs text-foreground/80 font-mono break-all">
-                        {status.installCommands.npm}
-                      </code>
-                    </div>
-                  )}
-                  {status.installCommands.macos && (
-                    <div className="p-3 rounded-xl bg-accent/30 border border-border/50">
-                      <p className="text-[10px] text-muted-foreground mb-1.5 font-medium uppercase tracking-wider">
-                        macOS/Linux
-                      </p>
-                      <code className="text-xs text-foreground/80 font-mono break-all">
-                        {status.installCommands.macos}
-                      </code>
-                    </div>
-                  )}
-                  {status.installCommands.windows && (
-                    <div className="p-3 rounded-xl bg-accent/30 border border-border/50">
-                      <p className="text-[10px] text-muted-foreground mb-1.5 font-medium uppercase tracking-wider">
-                        Windows (PowerShell)
-                      </p>
-                      <code className="text-xs text-foreground/80 font-mono break-all">
-                        {status.installCommands.windows}
-                      </code>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-foreground/80">Installation:</p>
+              <a
+                href="https://cursor.com/docs/cli"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs text-brand-400 hover:text-brand-300 transition-colors"
+              >
+                View installation guide →
+              </a>
+            </div>
           </div>
         )}
       </div>

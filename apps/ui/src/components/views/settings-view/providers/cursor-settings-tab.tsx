@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,12 +9,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Terminal, CheckCircle2, XCircle, Loader2, RefreshCw, ExternalLink } from 'lucide-react';
+import { Terminal, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { getHttpApiClient } from '@/lib/http-api-client';
 import { useAppStore } from '@/store/app-store';
+import { cn } from '@/lib/utils';
 import type { CursorModelId, CursorModelConfig, CursorCliConfig } from '@automaker/types';
 import { CURSOR_MODEL_MAP } from '@automaker/types';
+import {
+  CursorCliStatus,
+  CursorCliStatusSkeleton,
+  ModelConfigSkeleton,
+} from '../cli-status/cursor-cli-status';
 
 interface CursorStatus {
   installed: boolean;
@@ -137,87 +141,63 @@ export function CursorSettingsTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        {/* Usage Info skeleton */}
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+          <Info className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-400/90">
+            <span className="font-medium">Board View Only</span>
+            <p className="text-xs text-amber-400/70 mt-1">
+              Cursor is currently only available for the Kanban board agent tasks.
+            </p>
+          </div>
+        </div>
+        <CursorCliStatusSkeleton />
+        <ModelConfigSkeleton />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Status Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Terminal className="w-5 h-5" />
-            Cursor CLI Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Installation */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Installation</span>
-            {status?.installed ? (
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                <CheckCircle2 className="w-4 h-4" />
-                <span className="text-xs font-mono">v{status.version}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-destructive">
-                <XCircle className="w-4 h-4" />
-                <span className="text-xs">Not installed</span>
-              </div>
-            )}
-          </div>
+      {/* Usage Info */}
+      <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+        <Info className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+        <div className="text-sm text-amber-400/90">
+          <span className="font-medium">Board View Only</span>
+          <p className="text-xs text-amber-400/70 mt-1">
+            Cursor is currently only available for the Kanban board agent tasks.
+          </p>
+        </div>
+      </div>
 
-          {/* Authentication */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Authentication</span>
-            {status?.authenticated ? (
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                <CheckCircle2 className="w-4 h-4" />
-                <span className="text-xs capitalize">
-                  {status.method === 'api_key' ? 'API Key' : 'Browser Login'}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                <XCircle className="w-4 h-4" />
-                <span className="text-xs">Not authenticated</span>
-              </div>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
-            <Button variant="outline" size="sm" onClick={loadData}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh Status
-            </Button>
-            {!status?.installed && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open('https://cursor.com/docs/cli', '_blank')}
-              >
-                Installation Guide
-                <ExternalLink className="w-4 h-4 ml-2" />
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* CLI Status */}
+      <CursorCliStatus status={status} isChecking={isLoading} onRefresh={loadData} />
 
       {/* Model Configuration */}
       {status?.installed && currentProject && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Model Configuration</CardTitle>
-            <CardDescription>
+        <div
+          className={cn(
+            'rounded-2xl overflow-hidden',
+            'border border-border/50',
+            'bg-gradient-to-br from-card/90 via-card/70 to-card/80 backdrop-blur-xl',
+            'shadow-sm shadow-black/5'
+          )}
+        >
+          <div className="p-6 border-b border-border/50 bg-gradient-to-r from-transparent via-accent/5 to-transparent">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500/20 to-brand-600/10 flex items-center justify-center border border-brand-500/20">
+                <Terminal className="w-5 h-5 text-brand-500" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground tracking-tight">
+                Model Configuration
+              </h2>
+            </div>
+            <p className="text-sm text-muted-foreground/80 ml-12">
               Configure which Cursor models are available and set the default
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+            </p>
+          </div>
+          <div className="p-6 space-y-6">
             {/* Default Model */}
             <div className="space-y-2">
               <Label>Default Model</Label>
@@ -261,7 +241,7 @@ export function CursorSettingsTab() {
                   return (
                     <div
                       key={model.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                      className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-card/50 hover:bg-accent/30 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <Checkbox
@@ -289,30 +269,28 @@ export function CursorSettingsTab() {
                 })}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Not Installed State */}
-      {!status?.installed && (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <Terminal className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Cursor CLI is not installed.</p>
-            <p className="text-sm mt-2">Install it to use Cursor models in AutoMaker.</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* No Project Selected */}
       {status?.installed && !currentProject && (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <Terminal className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No project selected.</p>
+        <div
+          className={cn(
+            'rounded-2xl overflow-hidden',
+            'border border-border/50',
+            'bg-gradient-to-br from-card/90 via-card/70 to-card/80 backdrop-blur-xl',
+            'shadow-sm shadow-black/5'
+          )}
+        >
+          <div className="p-8 text-center text-muted-foreground">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500/10 to-brand-600/5 flex items-center justify-center border border-brand-500/10 mx-auto mb-4">
+              <Terminal className="w-6 h-6 text-brand-500/50" />
+            </div>
+            <p className="font-medium">No project selected</p>
             <p className="text-sm mt-2">Select a project to configure Cursor models.</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );
