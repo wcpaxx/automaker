@@ -123,7 +123,7 @@ interface AddFeatureDialogProps {
   selectedNonMainWorktreeBranch?: string;
   /**
    * When true, forces the dialog to default to 'current' work mode (work on current branch).
-   * This is used when the "Use selected worktree branch" setting is disabled.
+   * This is used when the "Default to worktree mode" setting is disabled.
    */
   forceCurrentBranchMode?: boolean;
 }
