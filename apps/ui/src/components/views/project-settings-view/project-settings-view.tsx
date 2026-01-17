@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/store/app-store';
-import { Settings, FolderOpen, Menu } from 'lucide-react';
+import { Settings, FolderOpen, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectIdentitySection } from './project-identity-section';
 import { ProjectThemeSection } from './project-theme-section';
@@ -126,16 +126,6 @@ export function ProjectSettingsView() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-glass backdrop-blur-md">
         <div className="flex items-center gap-3">
-          {/* Mobile menu button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowNavigation(!showNavigation)}
-            className="lg:hidden h-8 w-8 p-0"
-            aria-label="Toggle navigation menu"
-          >
-            <Menu className="w-4 h-4" />
-          </Button>
           <Settings className="w-5 h-5 text-muted-foreground" />
           <div>
             <h1 className="text-xl font-bold">Project Settings</h1>
@@ -144,6 +134,16 @@ export function ProjectSettingsView() {
             </p>
           </div>
         </div>
+        {/* Mobile menu button - far right */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowNavigation(!showNavigation)}
+          className="lg:hidden h-8 w-8 p-0"
+          aria-label={showNavigation ? 'Close navigation menu' : 'Open navigation menu'}
+        >
+          {showNavigation ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+        </Button>
       </div>
 
       {/* Content Area with Sidebar */}

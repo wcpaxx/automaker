@@ -483,6 +483,16 @@
   background: oklch(0.45 0 0);
 }
 
+/* Hidden scrollbar - still scrollable but no visible scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 /* Glass morphism utilities */
 @layer utilities {
   .glass {

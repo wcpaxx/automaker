@@ -502,6 +502,7 @@ export interface AppState {
   // View state
   currentView: ViewMode;
   sidebarOpen: boolean;
+  mobileSidebarHidden: boolean; // Completely hides sidebar on mobile
 
   // Agent Session state (per-project, keyed by project path)
   lastSelectedSessionByProject: Record<string, string>; // projectPath -> sessionId
@@ -910,6 +911,8 @@ export interface AppActions {
   setCurrentView: (view: ViewMode) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  toggleMobileSidebarHidden: () => void;
+  setMobileSidebarHidden: (hidden: boolean) => void;
 
   // Theme actions
   setTheme: (theme: ThemeMode) => void;
@@ -1252,6 +1255,7 @@ const initialState: AppState = {
   projectHistoryIndex: -1,
   currentView: 'welcome',
   sidebarOpen: true,
+  mobileSidebarHidden: false, // Sidebar visible by default on mobile
   lastSelectedSessionByProject: {},
   theme: getStoredTheme() || 'dark', // Use localStorage theme as initial value, fallback to 'dark'
   features: [],
@@ -1681,6 +1685,8 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
   setCurrentView: (view) => set({ currentView: view }),
   toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  toggleMobileSidebarHidden: () => set({ mobileSidebarHidden: !get().mobileSidebarHidden }),
+  setMobileSidebarHidden: (hidden) => set({ mobileSidebarHidden: hidden }),
 
   // Theme actions
   setTheme: (theme) => {

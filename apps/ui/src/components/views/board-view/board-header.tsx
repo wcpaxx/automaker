@@ -1,11 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Wand2, GitBranch, ClipboardCheck } from 'lucide-react';
 import { UsagePopover } from '@/components/usage-popover';
 import { useAppStore } from '@/store/app-store';
 import { useSetupStore } from '@/store/setup-store';
-import { useIsMobile } from '@/hooks/use-media-query';
+import { useIsTablet } from '@/hooks/use-media-query';
 import { AutoModeSettingsPopover } from './dialogs/auto-mode-settings-popover';
 import { WorktreeSettingsPopover } from './dialogs/worktree-settings-popover';
 import { PlanSettingsPopover } from './dialogs/plan-settings-popover';
@@ -108,7 +108,10 @@ export function BoardHeader({
   // Show if Codex is authenticated (CLI or API key)
   const showCodexUsage = !!codexAuthStatus?.authenticated;
 
-  const isMobile = useIsMobile();
+  // State for mobile actions panel
+  const [showActionsPanel, setShowActionsPanel] = useState(false);
+
+  const isTablet = useIsTablet();
 
   return (
     <div className="flex items-center justify-between gap-5 p-4 border-b border-border bg-glass backdrop-blur-md">
@@ -125,11 +128,13 @@ export function BoardHeader({
       </div>
       <div className="flex gap-4 items-center">
         {/* Usage Popover - show if either provider is authenticated, only on desktop */}
-        {isMounted && !isMobile && (showClaudeUsage || showCodexUsage) && <UsagePopover />}
+        {isMounted && !isTablet && (showClaudeUsage || showCodexUsage) && <UsagePopover />}
 
-        {/* Mobile view: show hamburger menu with all controls */}
-        {isMounted && isMobile && (
+        {/* Tablet/Mobile view: show hamburger menu with all controls */}
+        {isMounted && isTablet && (
           <HeaderMobileMenu
+            isOpen={showActionsPanel}
+            onToggle={() => setShowActionsPanel(!showActionsPanel)}
             isWorktreePanelVisible={isWorktreePanelVisible}
             onWorktreePanelToggle={handleWorktreePanelToggle}
             maxConcurrency={maxConcurrency}
@@ -146,7 +151,7 @@ export function BoardHeader({
 
         {/* Desktop view: show full controls */}
         {/* Worktrees Toggle - only show after mount to prevent hydration issues */}
-        {isMounted && !isMobile && (
+        {isMounted && !isTablet && (
           <div className={controlContainerClass} data-testid="worktrees-toggle-container">
             <GitBranch className="w-4 h-4 text-muted-foreground" />
             <Label
@@ -169,7 +174,7 @@ export function BoardHeader({
         )}
 
         {/* Auto Mode Toggle - only show after mount to prevent hydration issues */}
-        {isMounted && !isMobile && (
+        {isMounted && !isTablet && (
           <div className={controlContainerClass} data-testid="auto-mode-toggle-container">
             <Label
               htmlFor="auto-mode-toggle"
@@ -193,8 +198,8 @@ export function BoardHeader({
           </div>
         )}
 
-        {/* Plan Button with Settings - only show on desktop, mobile has it in the menu */}
-        {isMounted && !isMobile && (
+        {/* Plan Button with Settings - only show on desktop, tablet/mobile has it in the panel */}
+        {isMounted && !isTablet && (
           <div className={controlContainerClass} data-testid="plan-button-container">
             {hasPendingPlan && (
               <button

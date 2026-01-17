@@ -21,7 +21,12 @@ export function SidebarNavigation({
   navigate,
 }: SidebarNavigationProps) {
   return (
-    <nav className={cn('flex-1 overflow-y-auto px-3 pb-2', sidebarOpen ? 'mt-1' : 'mt-1')}>
+    <nav
+      className={cn(
+        'flex-1 overflow-y-auto scrollbar-hide px-3 pb-2',
+        sidebarOpen ? 'mt-1' : 'mt-1'
+      )}
+    >
       {!currentProject && sidebarOpen ? (
         // Placeholder when no project is selected (only in expanded state)
         <div className="flex items-center justify-center h-full px-4">

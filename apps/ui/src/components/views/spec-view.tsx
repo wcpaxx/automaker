@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 
@@ -12,6 +13,9 @@ import { CreateSpecDialog, RegenerateSpecDialog } from './spec-view/dialogs';
 
 export function SpecView() {
   const { currentProject, appSpec } = useAppStore();
+
+  // Actions panel state (for tablet/mobile)
+  const [showActionsPanel, setShowActionsPanel] = useState(false);
 
   // Loading state
   const { isLoading, specExists, isGenerationRunning, loadSpec } = useSpecLoading();
@@ -132,6 +136,8 @@ export function SpecView() {
         errorMessage={errorMessage}
         onRegenerateClick={() => setShowRegenerateDialog(true)}
         onSaveClick={saveSpec}
+        showActionsPanel={showActionsPanel}
+        onToggleActionsPanel={() => setShowActionsPanel(!showActionsPanel)}
       />
 
       <SpecEditor value={appSpec} onChange={handleChange} />

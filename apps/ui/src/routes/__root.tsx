@@ -28,12 +28,12 @@ import {
   performSettingsMigration,
 } from '@/hooks/use-settings-migration';
 import { Toaster } from 'sonner';
-import { Menu } from 'lucide-react';
 import { ThemeOption, themeOptions } from '@/config/theme-options';
 import { SandboxRiskDialog } from '@/components/dialogs/sandbox-risk-dialog';
 import { SandboxRejectionScreen } from '@/components/dialogs/sandbox-rejection-screen';
 import { LoadingState } from '@/components/ui/loading-state';
 import { useProjectSettingsLoader } from '@/hooks/use-project-settings-loader';
+import { useIsCompact } from '@/hooks/use-media-query';
 import type { Project } from '@/lib/electron';
 
 const logger = createLogger('RootLayout');
@@ -175,6 +175,9 @@ function RootLayoutContent() {
 
   // Load project settings when switching projects
   useProjectSettingsLoader();
+
+  // Check if we're in compact mode (< 1240px) to hide project switcher
+  const isCompact = useIsCompact();
 
   const isSetupRoute = location.pathname === '/setup';
   const isLoginRoute = location.pathname === '/login';
@@ -805,8 +808,9 @@ function RootLayoutContent() {
   }
 
   // Show project switcher on all app pages (not on dashboard, setup, or login)
+  // Also hide on compact screens (< 1240px) - the sidebar will show a logo instead
   const showProjectSwitcher =
-    !isDashboardRoute && !isSetupRoute && !isLoginRoute && !isLoggedOutRoute;
+    !isDashboardRoute && !isSetupRoute && !isLoginRoute && !isLoggedOutRoute && !isCompact;
 
   return (
     <>
@@ -820,16 +824,6 @@ function RootLayoutContent() {
         )}
         {showProjectSwitcher && <ProjectSwitcher />}
         <Sidebar />
-        {/* Mobile menu toggle button - only shows when sidebar is closed on mobile */}
-        {!sidebarOpen && (
-          <button
-            onClick={toggleSidebar}
-            className="fixed top-3 left-3 z-50 p-2 rounded-lg bg-card/90 backdrop-blur-sm border border-border shadow-lg lg:hidden"
-            aria-label="Open menu"
-          >
-            <Menu className="w-5 h-5 text-foreground" />
-          </button>
-        )}
         <div
           className="flex-1 flex flex-col overflow-hidden transition-all duration-300"
           style={{ marginRight: streamerPanelOpen ? '250px' : '0' }}
