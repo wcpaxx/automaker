@@ -35,6 +35,7 @@ const SETTINGS_FIELDS_TO_SYNC = [
   'theme',
   'fontFamilySans',
   'fontFamilyMono',
+  'terminalFontFamily', // Maps to terminalState.fontFamily
   'sidebarOpen',
   'chatHistoryOpen',
   'maxConcurrency',
@@ -159,6 +160,9 @@ export function useSettingsSync(): SettingsSyncState {
         if (field === 'currentProjectId') {
           // Special handling: extract ID from currentProject object
           updates[field] = appState.currentProject?.id ?? null;
+        } else if (field === 'terminalFontFamily') {
+          // Special handling: map terminalState.fontFamily to terminalFontFamily
+          updates[field] = appState.terminalState.fontFamily;
         } else {
           updates[field] = appState[field as keyof typeof appState];
         }
@@ -260,6 +264,8 @@ export function useSettingsSync(): SettingsSyncState {
         for (const field of SETTINGS_FIELDS_TO_SYNC) {
           if (field === 'currentProjectId') {
             updates[field] = appState.currentProject?.id ?? null;
+          } else if (field === 'terminalFontFamily') {
+            updates[field] = appState.terminalState.fontFamily;
           } else {
             updates[field] = appState[field as keyof typeof appState];
           }
@@ -319,6 +325,12 @@ export function useSettingsSync(): SettingsSyncState {
         if (field === 'currentProjectId') {
           // Special handling: compare currentProject IDs
           if (newState.currentProject?.id !== prevState.currentProject?.id) {
+            changed = true;
+            break;
+          }
+        } else if (field === 'terminalFontFamily') {
+          // Special handling: compare terminalState.fontFamily
+          if (newState.terminalState.fontFamily !== prevState.terminalState.fontFamily) {
             changed = true;
             break;
           }
@@ -403,6 +415,8 @@ export async function forceSyncSettingsToServer(): Promise<boolean> {
     for (const field of SETTINGS_FIELDS_TO_SYNC) {
       if (field === 'currentProjectId') {
         updates[field] = appState.currentProject?.id ?? null;
+      } else if (field === 'terminalFontFamily') {
+        updates[field] = appState.terminalState.fontFamily;
       } else {
         updates[field] = appState[field as keyof typeof appState];
       }
@@ -505,6 +519,13 @@ export async function refreshSettingsFromServer(): Promise<boolean> {
       worktreePanelCollapsed: serverSettings.worktreePanelCollapsed ?? false,
       lastProjectDir: serverSettings.lastProjectDir ?? '',
       recentFolders: serverSettings.recentFolders ?? [],
+      // Terminal font (nested in terminalState)
+      ...(serverSettings.terminalFontFamily && {
+        terminalState: {
+          ...currentAppState.terminalState,
+          fontFamily: serverSettings.terminalFontFamily,
+        },
+      }),
     });
 
     // Also refresh setup wizard state

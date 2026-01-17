@@ -472,6 +472,8 @@ export interface GlobalSettings {
   fontFamilySans?: string;
   /** Global Code/Mono font family (undefined = use default Geist Mono) */
   fontFamilyMono?: string;
+  /** Terminal font family (undefined = use default Menlo/Monaco) */
+  terminalFontFamily?: string;
 
   // UI State Preferences
   /** Whether sidebar is currently open */

@@ -4,6 +4,11 @@
  */
 
 import type { ThemeMode } from '@/store/app-store';
+import {
+  UI_MONO_FONT_OPTIONS,
+  DEFAULT_FONT_VALUE,
+  type UIFontOption,
+} from '@/config/ui-font-options';
 
 export interface TerminalTheme {
   background: string;
@@ -37,27 +42,44 @@ export interface TerminalTheme {
 
 /**
  * Terminal font options for user selection
- * These are monospace fonts commonly available on different platforms
+ *
+ * Uses the same fonts as UI_MONO_FONT_OPTIONS for consistency across the app.
+ * All fonts listed here are bundled with the app via @fontsource packages
+ * or are system fonts with appropriate fallbacks.
  */
-export interface TerminalFontOption {
-  value: string;
-  label: string;
-}
 
-export const TERMINAL_FONT_OPTIONS: TerminalFontOption[] = [
-  { value: "Menlo, Monaco, 'Courier New', monospace", label: 'Menlo / Monaco' },
-  { value: "'SF Mono', Menlo, Monaco, monospace", label: 'SF Mono' },
-  { value: "'JetBrains Mono', monospace", label: 'JetBrains Mono' },
-  { value: "'Fira Code', monospace", label: 'Fira Code' },
-  { value: "'Source Code Pro', monospace", label: 'Source Code Pro' },
-  { value: "Consolas, 'Courier New', monospace", label: 'Consolas' },
-  { value: "'Ubuntu Mono', monospace", label: 'Ubuntu Mono' },
-];
+// Re-export for backwards compatibility
+export type TerminalFontOption = UIFontOption;
 
 /**
- * Default terminal font family (first option)
+ * Terminal font options - reuses UI_MONO_FONT_OPTIONS with terminal-specific default
+ *
+ * The 'default' value means "use the default terminal font" (Menlo/Monaco)
  */
-export const DEFAULT_TERMINAL_FONT = TERMINAL_FONT_OPTIONS[0].value;
+export const TERMINAL_FONT_OPTIONS: readonly UIFontOption[] = UI_MONO_FONT_OPTIONS.map((option) => {
+  // Replace the UI default label with terminal-specific default
+  if (option.value === DEFAULT_FONT_VALUE) {
+    return { value: option.value, label: 'Default (Menlo / Monaco)' };
+  }
+  return option;
+});
+
+/**
+ * Default terminal font family
+ * Uses the DEFAULT_FONT_VALUE sentinel which maps to Menlo/Monaco
+ */
+export const DEFAULT_TERMINAL_FONT = DEFAULT_FONT_VALUE;
+
+/**
+ * Get the actual font family CSS value for terminal
+ * Converts DEFAULT_FONT_VALUE to the actual Menlo/Monaco font stack
+ */
+export function getTerminalFontFamily(fontValue: string | undefined): string {
+  if (!fontValue || fontValue === DEFAULT_FONT_VALUE) {
+    return "Menlo, Monaco, 'Courier New', monospace";
+  }
+  return fontValue;
+}
 
 // Dark theme (default)
 const darkTheme: TerminalTheme = {

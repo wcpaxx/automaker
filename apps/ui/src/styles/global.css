@@ -880,6 +880,11 @@
   background: var(--muted-foreground);
 }
 
+/* Terminal padding for better readability */
+.xterm {
+  padding: 12px 16px;
+}
+
 /* ========================================
    DEPENDENCY GRAPH STYLES
    Theme-aware styling for React Flow graph
