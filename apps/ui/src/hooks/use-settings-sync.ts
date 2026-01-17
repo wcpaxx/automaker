@@ -340,9 +340,22 @@ export function useSettingsSync(): SettingsSyncState {
         return;
       }
 
-      // Check if any synced field changed
+      // If projects array changed (by reference, meaning content changed), sync immediately
+      // This is critical - projects list changes must sync right away to prevent loss
+      // when switching between Electron and web modes or closing the app
+      if (newState.projects !== prevState.projects) {
+        logger.debug('Projects array changed, syncing immediately', {
+          prevCount: prevState.projects?.length ?? 0,
+          newCount: newState.projects?.length ?? 0,
+        });
+        syncNow();
+        return;
+      }
+
+      // Check if any other synced field changed
       let changed = false;
       for (const field of SETTINGS_FIELDS_TO_SYNC) {
+        if (field === 'projects') continue; // Already handled above
         if (hasSettingsFieldChanged(field, newState, prevState)) {
           changed = true;
           break;
