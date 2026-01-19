@@ -23,6 +23,13 @@ const SESSION_COOKIE_NAME = 'automaker_session';
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const WS_TOKEN_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes for WebSocket connection tokens
 
+/**
+ * Check if an environment variable is set to 'true'
+ */
+function isEnvTrue(envVar: string | undefined): boolean {
+  return envVar === 'true';
+}
+
 // Session store - persisted to file for survival across server restarts
 const validSessions = new Map<string, { createdAt: number; expiresAt: number }>();
 
@@ -134,8 +141,8 @@ const API_KEY = ensureApiKey();
 const BOX_CONTENT_WIDTH = 67;
 
 // Print API key to console for web mode users (unless suppressed for production logging)
-if (process.env.AUTOMAKER_HIDE_API_KEY !== 'true') {
-  const autoLoginEnabled = process.env.AUTOMAKER_AUTO_LOGIN === 'true';
+if (!isEnvTrue(process.env.AUTOMAKER_HIDE_API_KEY)) {
+  const autoLoginEnabled = isEnvTrue(process.env.AUTOMAKER_AUTO_LOGIN);
   const autoLoginStatus = autoLoginEnabled ? 'enabled (auto-login active)' : 'disabled';
 
   // Build box lines with exact padding
@@ -375,6 +382,12 @@ function checkAuthentication(
  * 5. Session cookie (for web mode)
  */
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+  // Allow disabling auth for local/trusted networks
+  if (isEnvTrue(process.env.AUTOMAKER_DISABLE_AUTH)) {
+    next();
+    return;
+  }
+
   const result = checkAuthentication(
     req.headers as Record<string, string | string[] | undefined>,
     req.query as Record<string, string | undefined>,
@@ -420,9 +433,10 @@ export function isAuthEnabled(): boolean {
  * Get authentication status for health endpoint
  */
 export function getAuthStatus(): { enabled: boolean; method: string } {
+  const disabled = isEnvTrue(process.env.AUTOMAKER_DISABLE_AUTH);
   return {
-    enabled: true,
-    method: 'api_key_or_session',
+    enabled: !disabled,
+    method: disabled ? 'disabled' : 'api_key_or_session',
   };
 }
 
@@ -430,6 +444,7 @@ export function getAuthStatus(): { enabled: boolean; method: string } {
  * Check if a request is authenticated (for status endpoint)
  */
 export function isRequestAuthenticated(req: Request): boolean {
+  if (isEnvTrue(process.env.AUTOMAKER_DISABLE_AUTH)) return true;
   const result = checkAuthentication(
     req.headers as Record<string, string | string[] | undefined>,
     req.query as Record<string, string | undefined>,
@@ -447,5 +462,6 @@ export function checkRawAuthentication(
   query: Record<string, string | undefined>,
   cookies: Record<string, string | undefined>
 ): boolean {
+  if (isEnvTrue(process.env.AUTOMAKER_DISABLE_AUTH)) return true;
   return checkAuthentication(headers, query, cookies).authenticated;
 }
