@@ -378,17 +378,17 @@ export function UsagePopover() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <UsageCard
-                      title="Weekly"
-                      subtitle="All models"
-                      percentage={claudeUsage.weeklyPercentage}
-                      resetText={claudeUsage.weeklyResetText}
-                      stale={isClaudeStale}
-                    />
-                    <UsageCard
                       title="Sonnet"
                       subtitle="Weekly"
                       percentage={claudeUsage.sonnetWeeklyPercentage}
                       resetText={claudeUsage.sonnetResetText}
+                      stale={isClaudeStale}
+                    />
+                    <UsageCard
+                      title="Weekly"
+                      subtitle="All models"
+                      percentage={claudeUsage.weeklyPercentage}
+                      resetText={claudeUsage.weeklyResetText}
                       stale={isClaudeStale}
                     />
                   </div>
