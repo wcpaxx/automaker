@@ -353,3 +353,19 @@ export type { TerminalInfo } from './terminal.js';
 
 // Test runner types
 export type { TestRunnerInfo } from './test-runner.js';
+
+// Project overview types (multi-project dashboard)
+export type {
+  ProjectHealthStatus,
+  FeatureStatusCounts,
+  ProjectStatus,
+  AggregateFeatureCounts,
+  AggregateProjectCounts,
+  AggregateStatus,
+  ActivityType,
+  ActivitySeverity,
+  RecentActivity,
+  ActivityFeedOptions,
+  MultiProjectOverview,
+  ProjectOverviewError,
+} from './project-overview.js';
