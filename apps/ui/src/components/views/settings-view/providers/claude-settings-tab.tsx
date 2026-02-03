@@ -4,6 +4,7 @@ import { useSetupStore } from '@/store/setup-store';
 import { useCliStatus } from '../hooks/use-cli-status';
 import { ClaudeCliStatus } from '../cli-status/claude-cli-status';
 import { ClaudeMdSettings } from '../claude/claude-md-settings';
+import { CCRSettings } from '../claude/ccr-settings';
 import { ClaudeUsageSection } from '../api-keys/claude-usage-section';
 import { SkillsSection } from './claude-settings-tab/skills-section';
 import { SubagentsSection } from './claude-settings-tab/subagents-section';
@@ -12,7 +13,8 @@ import { ProviderToggle } from './provider-toggle';
 import { Info } from 'lucide-react';
 
 export function ClaudeSettingsTab() {
-  const { apiKeys, autoLoadClaudeMd, setAutoLoadClaudeMd } = useAppStore();
+  const { apiKeys, autoLoadClaudeMd, setAutoLoadClaudeMd, ccrEnabled, setCcrEnabled } =
+    useAppStore();
   const { claudeAuthStatus } = useSetupStore();
 
   // Use CLI status hook
@@ -46,6 +48,9 @@ export function ClaudeSettingsTab() {
         isChecking={isCheckingClaudeCli}
         onRefresh={handleRefreshClaudeCli}
       />
+
+      {/* Claude Code Router */}
+      <CCRSettings ccrEnabled={ccrEnabled} onCcrEnabledChange={setCcrEnabled} />
 
       {/* Claude-compatible providers */}
       <ApiProfilesSection />

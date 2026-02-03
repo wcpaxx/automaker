@@ -2343,6 +2343,8 @@ Format your response as a structured markdown document.`;
         projectPath,
         '[AutoMode]'
       );
+      const analysisGlobalSettings = await this.settingsService?.getGlobalSettings();
+      const analysisCcrEnabled = analysisGlobalSettings?.ccrEnabled ?? false;
       const { model: analysisModel, thinkingLevel: analysisThinkingLevel } =
         resolvePhaseModel(phaseModelEntry);
       logger.info(
@@ -2382,6 +2384,7 @@ Format your response as a structured markdown document.`;
         thinkingLevel: analysisThinkingLevel, // Pass thinking level
         credentials, // Pass credentials for resolving 'credentials' apiKeySource
         claudeCompatibleProvider: analysisClaudeProvider, // Pass provider for alternative endpoint configuration
+        ccrEnabled: analysisCcrEnabled, // Enable Claude Code Router for API routing
       };
 
       const stream = provider.executeQuery(options);
@@ -3430,8 +3433,10 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       );
     }
 
-    // Get credentials for API calls (model comes from request, no phase model)
+    // Get credentials and global settings for API calls (model comes from request, no phase model)
     const credentials = await this.settingsService?.getCredentials();
+    const globalSettings = await this.settingsService?.getGlobalSettings();
+    const ccrEnabled = globalSettings?.ccrEnabled ?? false;
 
     // Try to find a provider for the model (if it's a provider model like "GLM-4.7")
     // This allows users to select provider models in the Auto Mode / Feature execution
@@ -3471,6 +3476,7 @@ This mock response was generated because AUTOMAKER_MOCK_AGENT=true was set.
       thinkingLevel: options?.thinkingLevel, // Pass thinking level for extended thinking
       credentials, // Pass credentials for resolving 'credentials' apiKeySource
       claudeCompatibleProvider, // Pass provider for alternative endpoint configuration (GLM, MiniMax, etc.)
+      ccrEnabled, // Enable Claude Code Router for API routing
     };
 
     // Execute via provider
@@ -3778,6 +3784,7 @@ After generating the revised spec, output:
                           mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined,
                           credentials, // Pass credentials for resolving 'credentials' apiKeySource
                           claudeCompatibleProvider, // Pass provider for alternative endpoint configuration
+                          ccrEnabled, // Enable Claude Code Router for API routing
                         });
 
                         let revisionText = '';
@@ -3927,6 +3934,7 @@ After generating the revised spec, output:
                       mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined,
                       credentials, // Pass credentials for resolving 'credentials' apiKeySource
                       claudeCompatibleProvider, // Pass provider for alternative endpoint configuration
+                      ccrEnabled, // Enable Claude Code Router for API routing
                     });
 
                     let taskOutput = '';
@@ -4027,6 +4035,7 @@ After generating the revised spec, output:
                     mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined,
                     credentials, // Pass credentials for resolving 'credentials' apiKeySource
                     claudeCompatibleProvider, // Pass provider for alternative endpoint configuration
+                    ccrEnabled, // Enable Claude Code Router for API routing
                   });
 
                   for await (const msg of continuationStream) {

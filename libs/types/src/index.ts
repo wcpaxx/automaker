@@ -329,3 +329,6 @@ export { PR_STATES, validatePRState } from './worktree.js';
 
 // Terminal types
 export type { TerminalInfo } from './terminal.js';
+
+// Claude Code Router (CCR) types
+export type { CCRStatus, CCRConfig } from './ccr.js';

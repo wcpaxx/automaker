@@ -68,6 +68,7 @@ const SETTINGS_FIELDS_TO_SYNC = [
   'enabledDynamicModelIds',
   'disabledProviders',
   'autoLoadClaudeMd',
+  'ccrEnabled',
   'keyboardShortcuts',
   'mcpServers',
   'defaultEditorCommand',
@@ -661,6 +662,7 @@ export async function refreshSettingsFromServer(): Promise<boolean> {
       enabledDynamicModelIds: sanitizedDynamicModelIds,
       disabledProviders: serverSettings.disabledProviders ?? [],
       autoLoadClaudeMd: serverSettings.autoLoadClaudeMd ?? false,
+      ccrEnabled: serverSettings.ccrEnabled ?? false,
       keyboardShortcuts: {
         ...currentAppState.keyboardShortcuts,
         ...(serverSettings.keyboardShortcuts as unknown as Partial<

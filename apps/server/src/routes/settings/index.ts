@@ -24,6 +24,7 @@ import { createUpdateProjectHandler } from './routes/update-project.js';
 import { createMigrateHandler } from './routes/migrate.js';
 import { createStatusHandler } from './routes/status.js';
 import { createDiscoverAgentsHandler } from './routes/discover-agents.js';
+import { createGetCCRStatusHandler } from './routes/get-ccr-status.js';
 
 /**
  * Create settings router with all endpoints
@@ -76,6 +77,9 @@ export function createSettingsRoutes(settingsService: SettingsService): Router {
 
   // Filesystem agents discovery (read-only)
   router.post('/agents/discover', createDiscoverAgentsHandler());
+
+  // CCR (Claude Code Router) status
+  router.get('/ccr/status', createGetCCRStatusHandler());
 
   return router;
 }

@@ -39,6 +39,12 @@ import {
 const logger = createLogger('Electron');
 const serverLogger = createLogger('Server');
 
+// Fix for blank screen issues on Windows (especially when running as Administrator)
+// This disables GPU acceleration which can cause rendering failures in some environments
+if (process.platform === 'win32') {
+  app.disableHardwareAcceleration();
+}
+
 // Development environment
 const isDev = !app.isPackaged;
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;

@@ -8,6 +8,7 @@
 import { query, type Options } from '@anthropic-ai/claude-agent-sdk';
 import { BaseProvider } from './base-provider.js';
 import { classifyError, getUserFriendlyErrorMessage, createLogger } from '@automaker/utils';
+import { getCCREnvFromStatus, getCCRStatus } from '../lib/ccr.js';
 
 const logger = createLogger('ClaudeProvider');
 import {
@@ -70,22 +71,57 @@ function isClaudeCompatibleProvider(config: ProviderConfig): config is ClaudeCom
 
 /**
  * Build environment for the SDK with only explicitly allowed variables.
+ * When CCR is enabled, uses CCR's configuration for routing.
  * When a provider/profile is provided, uses its configuration (clean switch - don't inherit from process.env).
  * When no provider is provided, uses direct Anthropic API settings from process.env.
  *
- * Supports both:
- * - ClaudeCompatibleProvider (new system with models[] array)
- * - ClaudeApiProfile (legacy system with modelMappings)
+ * Priority order:
+ * 1. CCR enabled - routes through Claude Code Router proxy
+ * 2. ClaudeCompatibleProvider (new system with models[] array)
+ * 3. ClaudeApiProfile (legacy system with modelMappings)
+ * 4. Direct Anthropic API
  *
  * @param providerConfig - Optional provider configuration for alternative endpoint
  * @param credentials - Optional credentials object for resolving 'credentials' apiKeySource
+ * @param ccrEnabled - Whether to use Claude Code Router for API routing
  */
-function buildEnv(
+async function buildEnv(
   providerConfig?: ProviderConfig,
-  credentials?: Credentials
-): Record<string, string | undefined> {
+  credentials?: Credentials,
+  ccrEnabled?: boolean
+): Promise<Record<string, string | undefined>> {
   const env: Record<string, string | undefined> = {};
 
+  // Priority 1: CCR enabled - use Claude Code Router for API routing
+  if (ccrEnabled) {
+    const status = await getCCRStatus();
+    if (status.installed && status.running) {
+      const ccrEnv = getCCREnvFromStatus(status);
+      if (ccrEnv) {
+        logger.debug('[buildEnv] Using Claude Code Router (CCR) for API routing', {
+          baseUrl: ccrEnv.ANTHROPIC_BASE_URL,
+        });
+        // Apply CCR environment variables
+        Object.assign(env, ccrEnv);
+        // Always add system vars from process.env
+        for (const key of SYSTEM_ENV_VARS) {
+          if (process.env[key]) {
+            env[key] = process.env[key];
+          }
+        }
+        return env;
+      }
+    } else {
+      logger.warn('[buildEnv] CCR enabled but not available', {
+        installed: status.installed,
+        running: status.running,
+        error: status.error,
+      });
+      // Fall through to other methods if CCR is not available
+    }
+  }
+
+  // Priority 2/3: Provider configuration
   if (providerConfig) {
     // Use provider configuration (clean switch - don't inherit non-system vars from process.env)
     logger.debug('[buildEnv] Using provider configuration:', {
@@ -213,6 +249,7 @@ export class ClaudeProvider extends BaseProvider {
       claudeApiProfile,
       claudeCompatibleProvider,
       credentials,
+      ccrEnabled,
     } = options;
 
     // Determine which provider config to use
@@ -229,9 +266,8 @@ export class ClaudeProvider extends BaseProvider {
       maxTurns,
       cwd,
       // Pass only explicitly allowed environment variables to SDK
-      // When a provider is active, uses provider settings (clean switch)
-      // When no provider, uses direct Anthropic API (from process.env or CLI OAuth)
-      env: buildEnv(providerConfig, credentials),
+      // Priority: CCR (if enabled) > provider config > direct Anthropic API
+      env: await buildEnv(providerConfig, credentials, ccrEnabled),
       // Pass through allowedTools if provided by caller (decided by sdk-options.ts)
       ...(allowedTools && { allowedTools }),
       // AUTONOMOUS MODE: Always bypass permissions for fully autonomous operation
@@ -284,6 +320,7 @@ export class ClaudeProvider extends BaseProvider {
       hasApiKey: !!envForSdk?.['ANTHROPIC_API_KEY'],
       hasAuthToken: !!envForSdk?.['ANTHROPIC_AUTH_TOKEN'],
       providerName: providerConfig?.name || '(direct Anthropic)',
+      ccrEnabled: !!ccrEnabled,
       maxTurns: sdkOptions.maxTurns,
       maxThinkingTokens: sdkOptions.maxThinkingTokens,
     });

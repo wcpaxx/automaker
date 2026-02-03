@@ -729,6 +729,7 @@ export interface AppState {
   // Claude Agent SDK Settings
   autoLoadClaudeMd: boolean; // Auto-load CLAUDE.md files using SDK's settingSources option
   skipSandboxWarning: boolean; // Skip the sandbox environment warning dialog on startup
+  ccrEnabled: boolean; // Enable Claude Code Router for API routing
 
   // MCP Servers
   mcpServers: MCPServerConfig[]; // List of configured MCP servers for agent use
@@ -1211,6 +1212,7 @@ export interface AppActions {
   // Claude Agent SDK Settings actions
   setAutoLoadClaudeMd: (enabled: boolean) => Promise<void>;
   setSkipSandboxWarning: (skip: boolean) => Promise<void>;
+  setCcrEnabled: (enabled: boolean) => Promise<void>;
 
   // Editor Configuration actions
   setDefaultEditorCommand: (command: string | null) => void;
@@ -1490,6 +1492,7 @@ const initialState: AppState = {
   disabledProviders: [], // No providers disabled by default
   autoLoadClaudeMd: false, // Default to disabled (user must opt-in)
   skipSandboxWarning: false, // Default to disabled (show sandbox warning dialog)
+  ccrEnabled: false, // Default to disabled (user must opt-in)
   mcpServers: [], // No MCP servers configured by default
   defaultEditorCommand: null, // Auto-detect: Cursor > VS Code > first available
   defaultTerminalId: null, // Integrated terminal by default
@@ -2699,6 +2702,17 @@ export const useAppStore = create<AppState & AppActions>()((set, get) => ({
     if (!ok) {
       logger.error('Failed to sync skipSandboxWarning setting to server - reverting');
       set({ skipSandboxWarning: previous });
+    }
+  },
+  setCcrEnabled: async (enabled) => {
+    const previous = get().ccrEnabled;
+    set({ ccrEnabled: enabled });
+    // Sync to server settings file
+    const { syncSettingsToServer } = await import('@/hooks/use-settings-migration');
+    const ok = await syncSettingsToServer();
+    if (!ok) {
+      logger.error('Failed to sync ccrEnabled setting to server - reverting');
+      set({ ccrEnabled: previous });
     }
   },
 

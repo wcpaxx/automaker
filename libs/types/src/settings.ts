@@ -933,6 +933,10 @@ export interface GlobalSettings {
   /** Skip the sandbox environment warning dialog on startup */
   skipSandboxWarning?: boolean;
 
+  // Claude Code Router (CCR) Settings
+  /** Enable Claude Code Router integration for API routing */
+  ccrEnabled?: boolean;
+
   // Codex CLI Settings
   /** Auto-load .codex/AGENTS.md instructions into Codex prompts */
   codexAutoLoadAgents?: boolean;
@@ -1301,6 +1305,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   lastSelectedSessionByProject: {},
   autoLoadClaudeMd: true,
   skipSandboxWarning: false,
+  ccrEnabled: false,
   codexAutoLoadAgents: DEFAULT_CODEX_AUTO_LOAD_AGENTS,
   codexSandboxMode: DEFAULT_CODEX_SANDBOX_MODE,
   codexApprovalPolicy: DEFAULT_CODEX_APPROVAL_POLICY,

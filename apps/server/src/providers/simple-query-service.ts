@@ -69,6 +69,8 @@ export interface SimpleQueryOptions {
   claudeCompatibleProvider?: ClaudeCompatibleProvider;
   /** Credentials for resolving 'credentials' apiKeySource in Claude API profiles/providers */
   credentials?: Credentials;
+  /** Enable Claude Code Router for API routing */
+  ccrEnabled?: boolean;
 }
 
 /**
@@ -143,6 +145,7 @@ export async function simpleQuery(options: SimpleQueryOptions): Promise<SimpleQu
     claudeApiProfile: options.claudeApiProfile, // Legacy: Pass active Claude API profile for alternative endpoint configuration
     claudeCompatibleProvider: options.claudeCompatibleProvider, // New: Pass Claude-compatible provider (takes precedence)
     credentials: options.credentials, // Pass credentials for resolving 'credentials' apiKeySource
+    ccrEnabled: options.ccrEnabled, // Enable Claude Code Router for API routing
   };
 
   for await (const msg of provider.executeQuery(providerOptions)) {
@@ -228,6 +231,7 @@ export async function streamingQuery(options: StreamingQueryOptions): Promise<Si
     claudeApiProfile: options.claudeApiProfile, // Legacy: Pass active Claude API profile for alternative endpoint configuration
     claudeCompatibleProvider: options.claudeCompatibleProvider, // New: Pass Claude-compatible provider (takes precedence)
     credentials: options.credentials, // Pass credentials for resolving 'credentials' apiKeySource
+    ccrEnabled: options.ccrEnabled, // Enable Claude Code Router for API routing
   };
 
   for await (const msg of provider.executeQuery(providerOptions)) {

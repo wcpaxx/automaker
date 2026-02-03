@@ -275,8 +275,10 @@ export class AgentService {
           ? await getCustomSubagents(this.settingsService, effectiveWorkDir)
           : undefined;
 
-      // Get credentials for API calls
+      // Get credentials and global settings for API calls
       const credentials = await this.settingsService?.getCredentials();
+      const globalSettings = await this.settingsService?.getGlobalSettings();
+      const ccrEnabled = globalSettings?.ccrEnabled ?? false;
 
       // Try to find a provider for the model (if it's a provider model like "GLM-4.7")
       // This allows users to select provider models in the Agent Runner UI
@@ -411,6 +413,7 @@ export class AgentService {
         reasoningEffort: effectiveReasoningEffort, // Pass reasoning effort for Codex models
         credentials, // Pass credentials for resolving 'credentials' apiKeySource
         claudeCompatibleProvider, // Pass provider for alternative endpoint configuration (GLM, MiniMax, etc.)
+        ccrEnabled, // Enable Claude Code Router for API routing
       };
 
       // Build prompt content with images

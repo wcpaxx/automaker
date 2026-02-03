@@ -233,6 +233,12 @@ export interface ExecuteOptions {
    * When a profile/provider has apiKeySource='credentials', the Anthropic key from this object is used.
    */
   credentials?: Credentials;
+  /**
+   * Enable Claude Code Router (CCR) for API routing.
+   * When true, routes API requests through CCR proxy if installed and running.
+   * CCR must be installed and `ccr start` must be running for this to work.
+   */
+  ccrEnabled?: boolean;
 }
 
 /**
