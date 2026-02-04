@@ -8,9 +8,10 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: macos-13
+          - os: macos-15
             arch: x64
             platform: mac
           - os: macos-latest
