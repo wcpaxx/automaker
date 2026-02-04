@@ -29,7 +29,7 @@ jobs:
       - name: Update package.json version
         shell: bash
         run: |
-          node apps/ui/scripts/update-version.mjs "0.13.0_ccr"
+          node apps/ui/scripts/update-version.mjs "0.13.0-ccr"
 
       - name: Setup project
         uses: ./.github/actions/setup-project
