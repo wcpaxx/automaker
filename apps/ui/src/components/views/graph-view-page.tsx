@@ -29,6 +29,19 @@ const logger = createLogger('GraphViewPage');
 // Stable empty array to avoid infinite loop in selector
 const EMPTY_WORKTREES: ReturnType<ReturnType<typeof useAppStore.getState>['getWorktrees']> = [];
 
+/**
+ * The Graph View page component.
+ *
+ * Displays the project's features in a dependency graph visualization.
+ * Integrates with:
+ * - D3-based graph rendering (GraphView)
+ * - Worktree management
+ * - Feature management (Add, Edit, Delete)
+ * - Backlog planning
+ * - Auto-mode task execution
+ *
+ * @returns The rendered Graph View page
+ */
 export function GraphViewPage() {
   const {
     currentProject,
@@ -134,7 +147,7 @@ export function GraphViewPage() {
         const result = await api.worktree.listBranches(currentProject.path);
         if (result.success && result.result?.branches) {
           const localBranches = result.result.branches
-            .filter((b) => !b.isRemote)
+            .filter((b) => !b.isRemote && b.name)
             .map((b) => b.name);
           setBranchSuggestions(localBranches);
         }

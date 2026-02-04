@@ -37,6 +37,20 @@ interface CreatePRDialogProps {
   defaultBaseBranch?: string;
 }
 
+/**
+ * Dialog for creating a GitHub Pull Request from a worktree.
+ *
+ * Features:
+ * - Automatically commits changes if needed
+ * - Pushes the branch to remote
+ * - Creates PR via GitHub CLI
+ * - Supports draft PRs
+ * - Allows selecting base branch
+ * - Fallback to browser if gh CLI is missing/failing
+ *
+ * @param props - Component props
+ * @returns The rendered Create PR dialog
+ */
 export function CreatePRDialog({
   open,
   onOpenChange,
@@ -67,7 +81,10 @@ export function CreatePRDialog({
   // Filter out current worktree branch from the list
   const branches = useMemo(() => {
     if (!branchesData?.branches) return [];
-    return branchesData.branches.map((b) => b.name).filter((name) => name !== worktree?.branch);
+    return branchesData.branches
+      .filter((b) => b.name)
+      .map((b) => b.name)
+      .filter((name) => name !== worktree?.branch);
   }, [branchesData?.branches, worktree?.branch]);
 
   // Common state reset function to avoid duplication

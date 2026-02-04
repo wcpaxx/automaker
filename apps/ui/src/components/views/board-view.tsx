@@ -93,6 +93,20 @@ const EMPTY_WORKTREES: ReturnType<ReturnType<typeof useAppStore.getState>['getWo
 
 const logger = createLogger('Board');
 
+/**
+ * The main board view component.
+ *
+ * Displays the project board in either Kanban or List layout.
+ * Manages all board state including:
+ * - Feature lists and categories
+ * - Drag and drop operations
+ * - Worktree management and panel
+ * - Dialogs (add feature, edit, pipeline settings, etc.)
+ * - Keyboard shortcuts
+ * - Auto-mode integration
+ *
+ * @returns The rendered Board view
+ */
 export function BoardView() {
   const {
     currentProject,
@@ -349,7 +363,7 @@ export function BoardView() {
         const result = await api.worktree.listBranches(currentProject.path);
         if (result.success && result.result?.branches) {
           const localBranches = result.result.branches
-            .filter((b) => !b.isRemote)
+            .filter((b) => !b.isRemote && b.name)
             .map((b) => b.name);
           setBranchSuggestions(localBranches);
         }

@@ -13,6 +13,9 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
+/**
+ * Option item for the Autocomplete component
+ */
 export interface AutocompleteOption {
   value: string;
   label?: string;
@@ -44,6 +47,19 @@ function normalizeOption(opt: string | AutocompleteOption): AutocompleteOption {
   return { ...opt, label: opt.label ?? opt.value };
 }
 
+/**
+ * A generic Autocomplete/Combobox component built on top of shadcn/ui.
+ *
+ * Features:
+ * - Searchable options list
+ * - Support for creating new values that don't exist in options
+ * - Custom icons and badges
+ * - Accessible Popover + Command implementation
+ * - Responsive width handling
+ *
+ * @param props - Component props
+ * @returns The rendered autocomplete component
+ */
 export function Autocomplete({
   value,
   onChange,
@@ -87,9 +103,11 @@ export function Autocomplete({
 
   // Filter options based on input
   const filteredOptions = React.useMemo(() => {
-    if (!inputValue) return normalizedOptions;
+    // Filter out options with undefined/null values
+    const validOptions = normalizedOptions.filter((opt) => opt.value != null);
+    if (!inputValue) return validOptions;
     const lower = inputValue.toLowerCase();
-    return normalizedOptions.filter(
+    return validOptions.filter(
       (opt) => opt.value.toLowerCase().includes(lower) || opt.label?.toLowerCase().includes(lower)
     );
   }, [normalizedOptions, inputValue]);
@@ -98,7 +116,7 @@ export function Autocomplete({
   const isNewValue =
     allowCreate &&
     inputValue.trim() &&
-    !normalizedOptions.some((opt) => opt.value.toLowerCase() === inputValue.toLowerCase());
+    !normalizedOptions.some((opt) => opt.value?.toLowerCase() === inputValue.toLowerCase());
 
   // Get display value
   const displayValue = React.useMemo(() => {
@@ -184,7 +202,7 @@ export function Autocomplete({
                     setInputValue('');
                     setOpen(false);
                   }}
-                  data-testid={`${itemTestIdPrefix}-${option.value.toLowerCase().replace(/[\s/\\]+/g, '-')}`}
+                  data-testid={`${itemTestIdPrefix}-${(option.value ?? '').toLowerCase().replace(/[\s/\\]+/g, '-')}`}
                 >
                   {Icon && <Icon className="w-4 h-4 mr-2" />}
                   {option.label}

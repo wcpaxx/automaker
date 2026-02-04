@@ -29,6 +29,18 @@ interface MergeWorktreeDialogProps {
   onCreateConflictResolutionFeature?: (conflictInfo: MergeConflictInfo) => void;
 }
 
+/**
+ * Dialog for merging a worktree branch into another branch (typically main).
+ *
+ * Features:
+ * - Select target branch (defaults to main)
+ * - Option to delete worktree and branch after merge
+ * - Conflict detection and resolution workflow
+ * - Warnings for uncommitted changes
+ *
+ * @param props - Component props
+ * @returns The rendered Merge Worktree dialog
+ */
 export function MergeWorktreeDialog({
   open,
   onOpenChange,
@@ -56,7 +68,7 @@ export function MergeWorktreeDialog({
             if (result.success && result.result?.branches) {
               // Filter out the source branch (can't merge into itself) and remote branches
               const branches = result.result.branches
-                .filter((b: BranchInfo) => !b.isRemote && b.name !== worktree.branch)
+                .filter((b: BranchInfo) => !b.isRemote && b.name && b.name !== worktree.branch)
                 .map((b: BranchInfo) => b.name);
               setAvailableBranches(branches);
             }

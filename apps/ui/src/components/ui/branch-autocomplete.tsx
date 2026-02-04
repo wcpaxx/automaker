@@ -14,6 +14,18 @@ interface BranchAutocompleteProps {
   'data-testid'?: string;
 }
 
+/**
+ * A specialized Autocomplete component for selecting git branches.
+ *
+ * Features:
+ * - Always shows 'main' at the top of the list
+ * - Displays card counts badges for branches if provided
+ * - Allows creating new branches (via allowCreate prop passed to Autocomplete)
+ * - Includes a GitBranch icon
+ *
+ * @param props - Component props
+ * @returns The rendered branch selection component
+ */
 export function BranchAutocomplete({
   value,
   onChange,
@@ -27,7 +39,9 @@ export function BranchAutocomplete({
 }: BranchAutocompleteProps) {
   // Always include "main" at the top of suggestions
   const branchOptions: AutocompleteOption[] = React.useMemo(() => {
-    const branchSet = new Set(['main', ...branches]);
+    // Filter out undefined/null branches
+    const validBranches = branches.filter((b): b is string => b != null && b !== '');
+    const branchSet = new Set(['main', ...validBranches]);
     return Array.from(branchSet).map((branch) => {
       const cardCount = branchCardCounts?.[branch];
       // Show card count if available, otherwise show "default" for main branch only
