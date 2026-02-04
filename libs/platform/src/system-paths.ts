@@ -66,6 +66,7 @@ export function getClaudeCliPaths(): string[] {
   return [
     path.join(os.homedir(), '.local', 'bin', 'claude'),
     path.join(os.homedir(), '.claude', 'local', 'claude'),
+    '/opt/homebrew/bin/claude',
     '/usr/local/bin/claude',
     path.join(os.homedir(), '.npm-global', 'bin', 'claude'),
   ];
