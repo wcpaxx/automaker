@@ -9,6 +9,7 @@ import { query, type Options } from '@anthropic-ai/claude-agent-sdk';
 import { BaseProvider } from './base-provider.js';
 import { classifyError, getUserFriendlyErrorMessage, createLogger } from '@automaker/utils';
 import { getCCREnvFromStatus, getCCRStatus } from '../lib/ccr.js';
+import { isCCREnabled } from '../lib/global-settings-accessor.js';
 
 const logger = createLogger('ClaudeProvider');
 import {
@@ -83,14 +84,18 @@ function isClaudeCompatibleProvider(config: ProviderConfig): config is ClaudeCom
  *
  * @param providerConfig - Optional provider configuration for alternative endpoint
  * @param credentials - Optional credentials object for resolving 'credentials' apiKeySource
- * @param ccrEnabled - Whether to use Claude Code Router for API routing
+ * @param ccrEnabledOverride - Explicit CCR setting (if undefined, auto-resolves from global settings)
  */
 async function buildEnv(
   providerConfig?: ProviderConfig,
   credentials?: Credentials,
-  ccrEnabled?: boolean
+  ccrEnabledOverride?: boolean
 ): Promise<Record<string, string | undefined>> {
   const env: Record<string, string | undefined> = {};
+
+  // Auto-resolve CCR setting if not explicitly provided
+  // This allows providers to work without callers needing to pass ccrEnabled
+  const ccrEnabled = ccrEnabledOverride ?? (await isCCREnabled());
 
   // Priority 1: CCR enabled - use Claude Code Router for API routing
   if (ccrEnabled) {

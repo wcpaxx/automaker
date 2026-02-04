@@ -83,6 +83,7 @@ import { createNotificationsRoutes } from './routes/notifications/index.js';
 import { getNotificationService } from './services/notification-service.js';
 import { createEventHistoryRoutes } from './routes/event-history/index.js';
 import { getEventHistoryService } from './services/event-history-service.js';
+import { initGlobalSettingsAccessor } from './lib/global-settings-accessor.js';
 
 // Load environment variables
 dotenv.config();
@@ -227,6 +228,7 @@ const events: EventEmitter = createEventEmitter();
 // Create services
 // Note: settingsService is created first so it can be injected into other services
 const settingsService = new SettingsService(DATA_DIR);
+initGlobalSettingsAccessor(settingsService);
 const agentService = new AgentService(DATA_DIR, events, settingsService);
 const featureLoader = new FeatureLoader();
 const autoModeService = new AutoModeService(events, settingsService);
