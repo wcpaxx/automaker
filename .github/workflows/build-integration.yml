@@ -1,0 +1,83 @@
+name: Build Integration
+
+on:
+  push:
+    branches:
+      - build/integration
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-13
+            arch: x64
+            platform: mac
+          - os: macos-latest
+            arch: arm64
+            platform: mac
+          - os: windows-latest
+            arch: x64
+            platform: win
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update package.json version
+        shell: bash
+        run: |
+          node apps/ui/scripts/update-version.mjs "0.13.0_ccr"
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+        with:
+          check-lockfile: 'true'
+
+      - name: Build Electron app (macOS x64)
+        if: matrix.platform == 'mac' && matrix.arch == 'x64'
+        shell: bash
+        run: npm run build:electron:mac --workspace=apps/ui -- --x64
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Build Electron app (macOS arm64)
+        if: matrix.platform == 'mac' && matrix.arch == 'arm64'
+        shell: bash
+        run: npm run build:electron:mac --workspace=apps/ui -- --arm64
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Build Electron app (Windows)
+        if: matrix.platform == 'win'
+        shell: bash
+        run: npm run build:electron:win --workspace=apps/ui
+
+      - name: Upload macOS x64 artifacts
+        if: matrix.platform == 'mac' && matrix.arch == 'x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-x64-builds
+          path: |
+            apps/ui/release/*.dmg
+            apps/ui/release/*.zip
+          retention-days: 30
+
+      - name: Upload macOS arm64 artifacts
+        if: matrix.platform == 'mac' && matrix.arch == 'arm64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64-builds
+          path: |
+            apps/ui/release/*.dmg
+            apps/ui/release/*.zip
+          retention-days: 30
+
+      - name: Upload Windows artifacts
+        if: matrix.platform == 'win'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: apps/ui/release/*.exe
+          retention-days: 30
