@@ -29,6 +29,18 @@ interface MergeWorktreeDialogProps {
   onCreateConflictResolutionFeature?: (conflictInfo: MergeConflictInfo) => void;
 }
 
+/**
+ * Dialog for merging a worktree branch into another branch (typically main).
+ *
+ * Features:
+ * - Select target branch (defaults to main)
+ * - Option to delete worktree and branch after merge
+ * - Conflict detection and resolution workflow
+ * - Warnings for uncommitted changes
+ *
+ * @param props - Component props
+ * @returns The rendered Merge Worktree dialog
+ */
 export function MergeWorktreeDialog({
   open,
   onOpenChange,

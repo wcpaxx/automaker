@@ -13,6 +13,9 @@ import {
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
+/**
+ * Option item for the Autocomplete component
+ */
 export interface AutocompleteOption {
   value: string;
   label?: string;
@@ -44,6 +47,19 @@ function normalizeOption(opt: string | AutocompleteOption): AutocompleteOption {
   return { ...opt, label: opt.label ?? opt.value };
 }
 
+/**
+ * A generic Autocomplete/Combobox component built on top of shadcn/ui.
+ *
+ * Features:
+ * - Searchable options list
+ * - Support for creating new values that don't exist in options
+ * - Custom icons and badges
+ * - Accessible Popover + Command implementation
+ * - Responsive width handling
+ *
+ * @param props - Component props
+ * @returns The rendered autocomplete component
+ */
 export function Autocomplete({
   value,
   onChange,

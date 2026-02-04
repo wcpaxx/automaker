@@ -14,6 +14,18 @@ interface BranchAutocompleteProps {
   'data-testid'?: string;
 }
 
+/**
+ * A specialized Autocomplete component for selecting git branches.
+ *
+ * Features:
+ * - Always shows 'main' at the top of the list
+ * - Displays card counts badges for branches if provided
+ * - Allows creating new branches (via allowCreate prop passed to Autocomplete)
+ * - Includes a GitBranch icon
+ *
+ * @param props - Component props
+ * @returns The rendered branch selection component
+ */
 export function BranchAutocomplete({
   value,
   onChange,

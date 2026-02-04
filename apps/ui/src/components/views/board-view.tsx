@@ -93,6 +93,20 @@ const EMPTY_WORKTREES: ReturnType<ReturnType<typeof useAppStore.getState>['getWo
 
 const logger = createLogger('Board');
 
+/**
+ * The main board view component.
+ *
+ * Displays the project board in either Kanban or List layout.
+ * Manages all board state including:
+ * - Feature lists and categories
+ * - Drag and drop operations
+ * - Worktree management and panel
+ * - Dialogs (add feature, edit, pipeline settings, etc.)
+ * - Keyboard shortcuts
+ * - Auto-mode integration
+ *
+ * @returns The rendered Board view
+ */
 export function BoardView() {
   const {
     currentProject,
