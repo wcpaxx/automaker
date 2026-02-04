@@ -134,7 +134,7 @@ export function GraphViewPage() {
         const result = await api.worktree.listBranches(currentProject.path);
         if (result.success && result.result?.branches) {
           const localBranches = result.result.branches
-            .filter((b) => !b.isRemote)
+            .filter((b) => !b.isRemote && b.name)
             .map((b) => b.name);
           setBranchSuggestions(localBranches);
         }

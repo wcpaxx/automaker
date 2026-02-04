@@ -27,7 +27,9 @@ export function BranchAutocomplete({
 }: BranchAutocompleteProps) {
   // Always include "main" at the top of suggestions
   const branchOptions: AutocompleteOption[] = React.useMemo(() => {
-    const branchSet = new Set(['main', ...branches]);
+    // Filter out undefined/null branches
+    const validBranches = branches.filter((b): b is string => b != null && b !== '');
+    const branchSet = new Set(['main', ...validBranches]);
     return Array.from(branchSet).map((branch) => {
       const cardCount = branchCardCounts?.[branch];
       // Show card count if available, otherwise show "default" for main branch only

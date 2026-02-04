@@ -56,7 +56,7 @@ export function MergeWorktreeDialog({
             if (result.success && result.result?.branches) {
               // Filter out the source branch (can't merge into itself) and remote branches
               const branches = result.result.branches
-                .filter((b: BranchInfo) => !b.isRemote && b.name !== worktree.branch)
+                .filter((b: BranchInfo) => !b.isRemote && b.name && b.name !== worktree.branch)
                 .map((b: BranchInfo) => b.name);
               setAvailableBranches(branches);
             }

@@ -67,7 +67,10 @@ export function CreatePRDialog({
   // Filter out current worktree branch from the list
   const branches = useMemo(() => {
     if (!branchesData?.branches) return [];
-    return branchesData.branches.map((b) => b.name).filter((name) => name !== worktree?.branch);
+    return branchesData.branches
+      .filter((b) => b.name)
+      .map((b) => b.name)
+      .filter((name) => name !== worktree?.branch);
   }, [branchesData?.branches, worktree?.branch]);
 
   // Common state reset function to avoid duplication
