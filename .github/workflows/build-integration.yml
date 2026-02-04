@@ -60,9 +60,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-x64-builds
-          path: |
-            apps/ui/release/*.dmg
-            apps/ui/release/*.zip
+          path: apps/ui/release/*.dmg
           retention-days: 30
 
       - name: Upload macOS arm64 artifacts
@@ -70,9 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm64-builds
-          path: |
-            apps/ui/release/*.dmg
-            apps/ui/release/*.zip
+          path: apps/ui/release/*.dmg
           retention-days: 30
 
       - name: Upload Windows artifacts
